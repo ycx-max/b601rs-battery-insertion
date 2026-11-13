@@ -3,9 +3,9 @@
 本目录记录使用 LeRobot 将 π0.5 适配到 Seeed B601-RS 电池插槽任务的过程。文档重点放在真实实验链路：数据如何进入模型、不同微调方式如何设置、训练预算如何计算，以及最终怎样通过真机 Rollout 判断模型是否有效。
 
 > **当前任务：** Battery grasping and slot insertion  
-> **数据集：** \`seeed_rebot_b601_rs/test_1102\`  
+> **数据集：** `seeed_rebot_b601_rs/test_1102`  
 > **数据规模：** 50 Episodes / 32,666 Frames  
-> **训练环境：** Conda \`lerobot\`  
+> **训练环境：** Conda `lerobot`  
 > **硬件：** 2 × NVIDIA RTX 4090（部分实验使用单卡，部分实验使用双卡 DDP）
 
 ## 1. Task and Robot Platform
@@ -23,16 +23,16 @@
 | Policy | π0.5 |
 | Base Model | π0.5 Base |
 | Task | Battery insertion into slot |
-| Training Environment | Conda environment: \`lerobot\` |
+| Training Environment | Conda environment: `lerobot` |
 | GPU | 2 × NVIDIA RTX 4090 |
 | Distributed Training | Accelerate + PyTorch DDP（双卡实验） |
 | Mixed Precision | BF16 |
 
 本机 Base Model 路径：
 
-\`\`\`text
+```text
 /home/jing/rebot_lerobot/models/pi05_base
-\`\`\`
+```
 
 这是实验机器上的本地路径，不是仓库内的模型文件。其他机器复现时，需要将其替换为自己的模型目录。
 
@@ -42,10 +42,10 @@
 
 | 项目 | 记录 |
 |---|---|
-| Dataset Repo ID | \`seeed_rebot_b601_rs/test_1102\` |
+| Dataset Repo ID | `seeed_rebot_b601_rs/test_1102` |
 | Episodes | 50 |
 | Frames | 32,666 |
-| Video Backend | \`pyav\` |
+| Video Backend | `pyav` |
 | Camera Views | Front / Side |
 | Image Resolution | 640 × 480 |
 | Camera FPS | 30 FPS |
@@ -56,46 +56,46 @@
 
 检查数据集文件：
 
-\`\`\`text
+```text
 ~/.cache/huggingface/lerobot/
 └── seeed_rebot_b601_rs/
     └── test_1102/
         └── meta/
             └── tasks.parquet
-\`\`\`
+```
 
 读取结果为：
 
 | task 文本（index） | task_index |
 |---|---:|
-| \`slot battery\` | 0 |
+| `slot battery` | 0 |
 
-因此，在这份数据集中，实际任务标签是 **\`slot battery\`**，而不是直接写成 \`Insert the battery into the slot\`。如果后续修改任务描述，应同步检查训练数据中的任务映射和部署时使用的任务文本，避免训练与推理不一致。
+因此，在这份数据集中，实际任务标签是 **`slot battery`**，而不是直接写成 `Insert the battery into the slot`。如果后续修改任务描述，应同步检查训练数据中的任务映射和部署时使用的任务文本，避免训练与推理不一致。
 
 ### 2.3 π0.5 的文本提示是怎样构造的
 
-LeRobot 的 π0.5 预处理并不是只把任务文本原样传给模型。根据当前代码 \`lerobot/src/lerobot/policies/pi05/processor_pi05.py\`，处理过程包括：
+LeRobot 的 π0.5 预处理并不是只把任务文本原样传给模型。根据当前代码 `lerobot/src/lerobot/policies/pi05/processor_pi05.py`，处理过程包括：
 
 1. 复制机器人 State。
-2. 将 State 补齐到 \`max_state_dim\`。
-3. 使用前序 Normalizer Processor 将 State 归一化到 \`[-1, 1]\`。
+2. 将 State 补齐到 `max_state_dim`。
+3. 使用前序 Normalizer Processor 将 State 归一化到 `[-1, 1]`。
 4. 将归一化后的 State 离散化为 256 个区间。
 5. 将任务文本和离散化 State 拼接成完整 Prompt。
 
 代码中的 Prompt 模板为：
 
-\`\`\`python
-full_prompt = f"Task: {cleaned_text}, State: {state_str};\\nAction: "
-\`\`\`
+```python
+full_prompt = f"Task: {cleaned_text}, State: {state_str};\nAction: "
+```
 
 对当前数据集而言，模型接收到的文本前缀形式为：
 
-\`\`\`text
+```text
 Task: slot battery, State: <discretized state values>;
 Action:
-\`\`\`
+```
 
-这里的 \`<discretized state values>\` 代表当前样本对应的离散化状态序列，并不是固定不变的占位文本。
+这里的 `<discretized state values>` 代表当前样本对应的离散化状态序列，并不是固定不变的占位文本。
 
 **结论：当前 π0.5 训练流程包含文本任务提示。** 训练日志通常不会逐 Batch 打印完整 Prompt，但预处理器会在样本进入模型前构造它。任务文本是否足够明确、是否需要改成更自然的指令，是值得通过控制变量实验验证的问题；仅凭当前任务标签，不能断言它已经导致成功率下降。
 
@@ -132,9 +132,9 @@ LoRA 冻结原模型权重，通过低秩矩阵表示权重更新：
 
 当前代码中记录的适配目标包括：
 
-- VLM 侧：\`q_proj\`、\`v_proj\`
-- State / Action 相关模块：\`state_proj\`、\`action_in_proj\`、\`action_out_proj\`
-- 时间条件 MLP：\`action_time_mlp_in\`、\`action_time_mlp_out\`
+- VLM 侧：`q_proj`、`v_proj`
+- State / Action 相关模块：`state_proj`、`action_in_proj`、`action_out_proj`
+- 时间条件 MLP：`action_time_mlp_in`、`action_time_mlp_out`
 
 LoRA 实验记录：
 
@@ -153,10 +153,10 @@ Expert-Only 的目标是将训练范围集中在动作专家相关模块，而�
 
 Full Fine-Tuning 更新模型中允许训练的全部参数。当前仓库记录的一组全参数微调配置使用：
 
-\`\`\`text
+```text
 policy.freeze_vision_encoder = false
 policy.train_expert_only = false
-\`\`\`
+```
 
 该配置与 LoRA、Expert-Only 的参数更新范围不同。文档中的 80,000 Steps 是当前记录的训练目标配置，不代表已经完成，也不代表它一定是最优训练预算。
 
@@ -167,14 +167,14 @@ policy.train_expert_only = false
 | 参数 | 当前记录值 | 含义 |
 |---|---:|---|
 | GPU 数量 | 2 | 两张 RTX 4090 |
-| \`--num_processes\` | 2 | 两个训练进程 |
-| \`--mixed_precision\` | \`bf16\` | BF16 混合精度 |
-| \`--batch_size\` | 4 | 每个进程 / GPU 的 Batch Size |
+| `--num_processes` | 2 | 两个训练进程 |
+| `--mixed_precision` | `bf16` | BF16 混合精度 |
+| `--batch_size` | 4 | 每个进程 / GPU 的 Batch Size |
 | Global Batch Size | 8 | 4 × 2 |
-| \`--num_workers\` | 0 | DataLoader 不额外启动 Worker 进程 |
-| \`gradient_checkpointing\` | true | 通过重计算部分激活降低显存占用 |
-| \`compile_model\` | false | 关闭模型编译 |
-| \`video_backend\` | \`pyav\` | 使用 PyAV 读取视频 |
+| `--num_workers` | 0 | DataLoader 不额外启动 Worker 进程 |
+| `gradient_checkpointing` | true | 通过重计算部分激活降低显存占用 |
+| `compile_model` | false | 关闭模型编译 |
+| `video_backend` | `pyav` | 使用 PyAV 读取视频 |
 
 DDP 是数据并行：每张 GPU 持有模型副本，处理不同数据并同步梯度。两张 GPU 的显存不会自动合并成一块显存。
 
@@ -182,47 +182,47 @@ DDP 是数据并行：每张 GPU 持有模型副本，处理不同数据并同�
 
 下面是仓库当前记录的双卡 Full Fine-Tuning 配置。运行前请确认本机 LeRobot 版本、数据集路径和 Base Model 路径与实验记录一致。
 
-\`\`\`bash
+```bash
 conda activate lerobot
 
-CUDA_VISIBLE_DEVICES=0,1 \\
-PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \\
-accelerate launch \\
-  --multi_gpu \\
-  --num_processes=2 \\
-  --num_machines=1 \\
-  --mixed_precision=bf16 \\
-  --num_cpu_threads_per_process=8 \\
-  --module lerobot.scripts.lerobot_train \\
-  --dataset.repo_id=seeed_rebot_b601_rs/test_1102 \\
-  --dataset.video_backend=pyav \\
-  --policy.path=/home/jing/rebot_lerobot/models/pi05_base \\
-  --policy.device=cuda \\
-  --policy.dtype=bfloat16 \\
-  --policy.gradient_checkpointing=true \\
-  --policy.compile_model=false \\
-  --policy.freeze_vision_encoder=false \\
-  --policy.train_expert_only=false \\
-  --policy.push_to_hub=false \\
-  --output_dir=outputs/train/pi05_full_finetune_test1102 \\
-  --job_name=pi05_full_finetune_test1102 \\
-  --batch_size=4 \\
-  --num_workers=0 \\
-  --steps=80000 \\
-  --eval_freq=0 \\
-  --log_freq=10 \\
-  --save_checkpoint=true \\
-  --save_freq=2000 \\
+CUDA_VISIBLE_DEVICES=0,1 \
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+accelerate launch \
+  --multi_gpu \
+  --num_processes=2 \
+  --num_machines=1 \
+  --mixed_precision=bf16 \
+  --num_cpu_threads_per_process=8 \
+  --module lerobot.scripts.lerobot_train \
+  --dataset.repo_id=seeed_rebot_b601_rs/test_1102 \
+  --dataset.video_backend=pyav \
+  --policy.path=/home/jing/rebot_lerobot/models/pi05_base \
+  --policy.device=cuda \
+  --policy.dtype=bfloat16 \
+  --policy.gradient_checkpointing=true \
+  --policy.compile_model=false \
+  --policy.freeze_vision_encoder=false \
+  --policy.train_expert_only=false \
+  --policy.push_to_hub=false \
+  --output_dir=outputs/train/pi05_full_finetune_test1102 \
+  --job_name=pi05_full_finetune_test1102 \
+  --batch_size=4 \
+  --num_workers=0 \
+  --steps=80000 \
+  --eval_freq=0 \
+  --log_freq=10 \
+  --save_checkpoint=true \
+  --save_freq=2000 \
   --wandb.enable=true
-\`\`\`
+```
 
 注意：
 
-- \`--batch_size=4\` 是单个训练进程的 Batch Size；双卡时全局 Batch Size 为 8。
-- \`--policy.push_to_hub=false\` 表示不将模型自动推送到 Hugging Face Hub。
-- \`--wandb.enable=true\` 仍会记录 W&B 训练日志；它与是否推送模型权重到 Hub 是两回事。
+- `--batch_size=4` 是单个训练进程的 Batch Size；双卡时全局 Batch Size 为 8。
+- `--policy.push_to_hub=false` 表示不将模型自动推送到 Hugging Face Hub。
+- `--wandb.enable=true` 仍会记录 W&B 训练日志；它与是否推送模型权重到 Hub 是两回事。
 - 该命令是 Full Fine-Tuning 配置，不可直接当作 LoRA 或 Expert-Only 的启动命令。
-- 本次运行的优化器、Scheduler 和学习率应以对应输出目录中的实际 \`train_config.json\` 为准；没有核对的配置不在文档中补写。
+- 本次运行的优化器、Scheduler 和学习率应以对应输出目录中的实际 `train_config.json` 为准；没有核对的配置不在文档中补写。
 
 ### 4.3 Epoch 与训练预算
 
@@ -316,12 +316,12 @@ RTC（并行化推理与执行的相关方法）关注的是：机器人执行�
 ## 8. Reproducibility Checklist
 
 - [x] 记录数据集 Repo ID、Episodes 和 Frames
-- [x] 核对 \`tasks.parquet\` 中的任务文本映射
+- [x] 核对 `tasks.parquet` 中的任务文本映射
 - [x] 核对 π0.5 Prompt 构造代码
-- [x] 记录 Conda 环境为 \`lerobot\`
+- [x] 记录 Conda 环境为 `lerobot`
 - [x] 记录 LoRA r16、LoRA r32 和 Expert-Only 实验
 - [x] 记录双卡 DDP 与 BF16 配置
-- [ ] 从每组实验的 \`train_config.json\` 补齐优化器和 Scheduler
+- [ ] 从每组实验的 `train_config.json` 补齐优化器和 Scheduler
 - [ ] 汇总各实验最终 Checkpoint 与实际训练耗时
 - [ ] 使用统一测试协议完成各策略真机 Rollout
 - [ ] 记录各阶段成功率、失败案例和完成时间
