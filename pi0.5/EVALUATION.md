@@ -26,7 +26,7 @@ Seeed B601-RS 单臂电池插槽任务的 π0.5 微调策略与 RTC 推理评估
 | π0.5 LoRA r32 | 80,000 | 9 | 25 | 36% |
 | π0.5 Expert-Only | 80,000 | 13 | 25 | 52% |
 | π0.5 Full Fine-Tuning | 80,000 | 19 | 25 | 76% |
-| π0.5 Full FT + RTC | Reuse Full FT 80k checkpoint | 23 | 25 | **92%** |
+| π0.5 Full FT + RTC | Reuse Full FT 80k checkpoint | 21 | 25 | **84%** |
 
 
 ## 3. Comparison
@@ -48,10 +48,10 @@ RTC 在 Full Fine-Tuning checkpoint 上作为推理策略启用：
 | Configuration | Success Rate |
 |---|---:|
 | Full Fine-Tuning | 76% |
-| Full Fine-Tuning + RTC | **92%** |
+| Full Fine-Tuning + RTC | **84%** |
 | Difference | **+16 percentage points** |
 
-成功次数从 19/25 增加到 23/25，即在这组评测中多完成 4 次任务。
+成功次数从 19/25 增加到 21/25，即在这组评测中多完成 2 次任务。
 
 RTC 通过在线处理新旧动作块之间的衔接，改善动作执行阶段的连续性。该对比反映的是当前任务与评测设置下的结果。
 
