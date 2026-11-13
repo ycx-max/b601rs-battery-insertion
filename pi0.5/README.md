@@ -6,7 +6,7 @@
 > **Robot:** 1 × Seeed B601-RS Follower + 1 × reBot Arm 102 Leader  
 > **Dataset:** seeed_rebot_b601_rs/test_1102  
 > **Dataset Size:** 50 Episodes / 32,666 Frames  
-> **Training:** LoRA r16 / LoRA r32 / Expert-Only / Full Fine-Tuning，均完成 80,000 steps  
+> **Training:** LoRA r32 / Expert-Only / Full Fine-Tuning，均完成 80,000 steps  
 > **Hardware:** 2 × NVIDIA RTX 4090  
 > **Best Real-Robot Result:** Full FT + RTC，23/25（92%）
 
@@ -16,7 +16,6 @@
 
 实验包含四组完成训练的配置：
 
-1. **LoRA r16**：低秩适配，rank 16。
 2. **LoRA r32**：低秩适配，rank 32。
 3. **Expert-Only**：训练 Action Expert，冻结视觉语言主干。
 4. **Full Fine-Tuning**：开放模型中配置为可训练的参数，进行全量微调。
@@ -110,7 +109,6 @@ Action:
 
 | Experiment | Update Strategy | Rank | Final Steps | Training Status |
 |---|---|---:|---:|---|
-| LoRA r16 | Low-Rank Adaptation | 16 | 80,000 | Completed |
 | LoRA r32 | Low-Rank Adaptation | 32 | 80,000 | Completed |
 | Expert-Only | Action Expert fine-tuning | — | 80,000 | Completed |
 | Full Fine-Tuning | Full model fine-tuning | — | 80,000 | Completed |
@@ -121,7 +119,7 @@ LoRA 冻结原始权重，通过低秩矩阵表达权重增量：
 
 W' = W + (alpha / r) × B × A
 
-其中 r 为低秩矩阵的 Rank。项目完成 r16 与 r32 两组 80,000-step 训练，用于比较不同低秩容量下的适配效果。
+其中 r 为低秩矩阵的 Rank。本项目采用 Rank = 32 的 LoRA 配置完成 80,000-step 训练。
 
 当前记录的 LoRA 目标模块：
 
@@ -159,12 +157,11 @@ policy.train_expert_only = false
 
 | Experiment | Key Configuration |
 |---|---|
-| LoRA r16 | peft.method_type=LORA；peft.r=16；steps=80000 |
 | LoRA r32 | peft.method_type=LORA；peft.r=32；steps=80000 |
 | Expert-Only | policy.train_expert_only=true；steps=80000 |
 | Full Fine-Tuning | policy.freeze_vision_encoder=false；policy.train_expert_only=false；steps=80000 |
 
-LoRA r16 与 r32 的主要对照变量为 Rank；Expert-Only 与 Full Fine-Tuning 的主要差异为可训练参数范围。四组训练均已完成 80,000 steps。
+本项目展示 LoRA r32、Expert-Only 与 Full Fine-Tuning 三种微调策略，均已完成 80,000 steps。
 
 ## 4. Training Environment
 
@@ -273,7 +270,6 @@ Real-Time Chunking（RTC）用于处理机器人执行当前动作段时，后�
 | Expert-Only | 80,000 | 13 / 25 | 52% |
 | Full Fine-Tuning | 80,000 | 19 / 25 | 76% |
 | Full FT + RTC | Reuse Full FT 80k checkpoint | 23 / 25 | **92%** |
-| LoRA r16 | 80,000 | Not listed in this comparison | — |
 
 详细结果与分析见 [EVALUATION.md](./EVALUATION.md)，训练过程台账见 [EXPERIMENTS.md](./EXPERIMENTS.md)。
 
@@ -281,7 +277,6 @@ Real-Time Chunking（RTC）用于处理机器人执行当前动作段时，后�
 
 - 在当前任务和数据设置下，LoRA r32、Expert-Only、Full FT 的成功率依次为 36%、52%、76%。
 - Full FT + RTC 相较于 Full FT 提高 16 个百分点，对应 25 次测试中多完成 4 次任务。
-- LoRA r16 已完成训练，但当前没有将其成功率纳入对比表，因此不根据 Rank 推测其性能。
 - 这些结果用于描述当前 B601-RS 电池插槽任务，不代表跨任务泛化结论。
 
 ## 7. Reproduction Checklist
@@ -289,7 +284,6 @@ Real-Time Chunking（RTC）用于处理机器人执行当前动作段时，后�
 - [x] B601-RS 单臂平台与 Leader-Follower 遥操作数据
 - [x] 50 条示教数据及左右初始位置分布
 - [x] π0.5 数据预处理与任务 Prompt 记录
-- [x] LoRA r16：80,000 steps
 - [x] LoRA r32：80,000 steps
 - [x] Expert-Only：80,000 steps
 - [x] Full Fine-Tuning：80,000 steps
