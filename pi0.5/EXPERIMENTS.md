@@ -119,7 +119,7 @@ Recorded Full FT DDP configuration:
 | LoRA r32 | 80,000 steps | 9 | 25 | 36% |
 | Expert-Only | 80,000 steps | 13 | 25 | 52% |
 | Full Fine-Tuning | 80,000 steps | 19 | 25 | 76% |
-| Full FT + RTC | Reuse Full FT 80k checkpoint | 23 | 25 | **92%** |
+| Full FT + RTC | Reuse Full FT 80k checkpoint | 21 | 25 | **84%** |
 
 
 ## 6. Result Interpretation
@@ -139,8 +139,8 @@ Recorded Full FT DDP configuration:
 Full FT + RTC 使用同一 Full FT checkpoint，在推理阶段加入 RTC：
 
 - Full FT：19/25，76%；
-- Full FT + RTC：23/25，92%；
-- 差值：+16 个百分点，即 25 次测试中多完成 4 次任务。
+- Full FT + RTC：21/25，84%；
+- 差值：+8 个百分点，即 25 次测试中多完成 2 次任务。
 
 RTC 是推理策略，不是第五组独立的 80,000-step 训练。
 
