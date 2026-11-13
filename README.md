@@ -1,136 +1,145 @@
 # B601-RS Battery Insertion
+## Real-Robot Manipulation Portfolio | ACT → π0.5
 
-基于 Seeed B601-RS 单臂机械臂与 LeRobot 的真实机器人操作项目，围绕电池抓取、移动、对准和插入插槽任务，开展模仿学习与 Vision-Language-Action（VLA）策略的训练和真机部署。
+基于 Seeed B601-RS 单臂机械臂与 Hugging Face LeRobot，完成电池抓取、移动、插槽对准与插入任务。项目覆盖遥操作示教、ACT 模仿学习、π0.5 VLA 微调、真机推理、RTC 动作衔接与实验对比。
+
+> **项目定位：** Real-Robot Manipulation · Imitation Learning · Vision-Language-Action (VLA) · Policy Fine-Tuning · Online Inference
 
 ## 真机演示
 
-[![B601-RS 机械臂电池插槽装配真机演示](./assets/real-robot-demo-preview.webp)](./assets/real-robot-demo.mp4)
+[![B601-RS 电池插槽装配真机演示](./assets/real-robot-demo-preview.webp)](./assets/real-robot-demo.mp4)
 
-[观看原始 MP4](./assets/real-robot-demo.mp4)
+- [观看真机演示 MP4](./assets/real-robot-demo.mp4)
+- [查看 8 个操作关键帧](./assets/real-robot-demo-frames.png)
 
-### 真机演示关键帧
+## 项目成果一览
 
-![电池插槽装配演示的 8 个关键帧（0.0–25.8 秒）](./assets/real-robot-demo-frames.png)
+| 项目 | 实验结果 |
+|---|---|
+| 机器人平台 | 1 × Seeed B601-RS Follower + 1 × reBot Arm 102 Leader |
+| 示教数据 | 50 条真机 Episode，左侧 25 条、右侧 25 条 |
+| 视觉输入 | Front / Side 双视角，640 × 480，30 FPS |
+| ACT | 初始成功率 56%；视角与轨迹优化后 72%；启用 TE 后 80% |
+| π0.5 | LoRA r32 36%；Expert-Only 52%；Full FT 76%；Full FT + RTC 92% |
+| π0.5 训练 | LoRA r16、LoRA r32、Expert-Only、Full FT 均完成 80,000 steps |
+| 最高真机成功率 | π0.5 Full FT + RTC：23/25（92%） |
 
-## 1. Project Overview
+**评测口径：** 表中 ACT 和 π0.5 的成功率均对应 25 次真机测试。LoRA r16 已完成 80,000 steps，但没有纳入当前展示的 25 次成功率对比，因此不为其补写成功率。RTC 是 Full FT checkpoint 的推理策略，不是额外训练出的模型。
+
+## 1. Task & Robot Platform
+
+任务要求单臂机械臂根据视觉观测和机器人状态，完成电池抓取、移动、对准和插入。
 
 | 项目 | 配置 |
 |---|---|
-| Task | Insert the battery into slot |
 | Follower | 1 × Seeed B601-RS |
 | Leader | 1 × reBot Arm 102 |
-| Framework | LeRobot |
-| Research Focus | Imitation Learning、VLA Fine-Tuning、Real-Robot Evaluation |
+| Robot Framework | LeRobot |
+| Task | Insert the battery into slot |
+| Camera Views | Front / Side |
+| Image Resolution | 640 × 480 |
+| Camera FPS | 30 FPS |
+| ACT Control Frequency | 30 Hz |
 
-## 2. Policy Implementations
+## 2. Dataset
 
-| Policy | Directory | 内容 |
-|---|---|---|
-| ACT | [ACT/](./ACT/) | 单臂遥操作示教、Action Chunking、模型训练与真机部署 |
-| π0.5 | [pi0.5/](./pi0.5/) | LoRA、Expert-Only、Full Fine-Tuning 与 VLA 真机适配 |
-| GR00T | [groot/](./groot/) | 后续模型适配与实验记录 |
+使用 Leader-Follower 遥操作方式采集单臂示教数据。50 条 Episode 按电池初始摆放区域均分，每 5 条示教调整一次初始位置，以覆盖同侧不同相对位置。
 
-## 3. Key Real-Robot Results
+| Dataset | Repo ID | Episodes | Frames | Camera Views |
+|---|---|---:|---:|---|
+| ACT | seeed_rebot_b601_rs/test1012_2 | 50 | 29,737 | Front / Side |
+| π0.5 | seeed_rebot_b601_rs/test_1102 | 50 | 32,666 | Front / Side |
 
-当前单臂电池插槽任务的阶段性真机成功率：
+| 初始摆放区域 | Episode 数量 | 占比 |
+|---|---:|---:|
+| 左侧 | 25 | 50% |
+| 右侧 | 25 | 50% |
+| **合计** | **50** | **100%** |
 
-| Policy / Experiment | 优化方式 | Success Rate |
-|---|---|---:|
-| ACT | 初始实验 | 56% |
-| ACT | 调整腕部相机视角与末端推压轨迹 | 72% |
-| ACT + TE | 启用 Temporal Ensembling | 80% |
-| π0.5 LoRA r32 | Rank = 32 | 36% |
-| π0.5 Expert-Only | 仅训练 Action Expert | 52% |
-| π0.5 Full Fine-Tuning | 全参数微调 | 76% |
-| π0.5 Full FT + RTC | 全参数微调并启用 RTC | **92%** |
+π0.5 数据集的任务文本为 **Insert the battery into slot**，task_index 为 0。
 
-### ACT 优化过程
+## 3. Real-Robot Results
 
-通过复盘 ACT 真机失败案例，调整腕部相机视角和末端推压轨迹，成功率由 56% 提升至 72%；进一步启用 Temporal Ensembling（TE）后，成功率达到 80%。
+### 3.1 ACT：Imitation Learning Baseline
 
-### π0.5 微调与推理优化
+| 实验阶段 | 改进内容 | 成功次数 | 成功率 |
+|---|---|---:|---:|
+| ACT 初始实验 | 初始相机视角与末端推压轨迹 | 14/25 | 56% |
+| ACT 优化 | 调整腕部相机视角与末端推压轨迹 | 18/25 | 72% |
+| ACT + TE | 在优化配置上启用 Temporal Ensembling | 20/25 | **80%** |
 
-π0.5 不同微调策略的真机成功率分别为：LoRA r32 36%、Expert-Only 52%、Full Fine-Tuning 76%。在 Full Fine-Tuning 模型上进一步结合 RTC，成功率达到 92%。
+通过复盘失败案例，调整腕部相机视角和末端推压轨迹，将成功率从 56% 提升至 72%；进一步启用 Temporal Ensembling（TE）后达到 80%。
 
-## 4. Research Workflow
+### 3.2 π0.5：VLA Fine-Tuning & Inference
 
-```text
-Single-Arm Robot Setup
-        ↓
-Teleoperation Demonstrations
-        ↓
-Dataset Inspection & Preprocessing
-        ↓
-Policy Training / Fine-Tuning
-        ↓
-Checkpoint Selection
-        ↓
-Real-Robot Rollout
-        ↓
-Failure Analysis & Data Iteration
+四种 π0.5 训练实验均完成 80,000 steps。下表展示已完成 25 次真机评测的模型配置：
+
+| 模型配置 | 微调 / 推理策略 | 成功次数 | 成功率 |
+|---|---|---:|---:|
+| π0.5 LoRA r32 | Rank = 32 | 9/25 | 36% |
+| π0.5 Expert-Only | 训练 Action Expert | 13/25 | 52% |
+| π0.5 Full Fine-Tuning | 全量微调 | 19/25 | 76% |
+| π0.5 Full FT + RTC | Full FT checkpoint + RTC 推理 | 23/25 | **92%** |
+
+LoRA r16 同样完成 80,000 steps，作为参数高效微调的补充实验记录；当前不将其纳入上述成功率对比。
+
+**关键观察：**
+- 在本任务和当前实验设置下，参数更新范围更大的 Full FT 获得了高于 LoRA r32 与 Expert-Only 的真机成功率。
+- 在 Full FT checkpoint 上启用 Real-Time Chunking（RTC）后，成功率从 76% 提升至 92%。
+- 上述结论是当前单臂电池插槽任务的实验观察，不外推为不同机器人或任务上的普遍结论。
+
+## 4. Technical Workflow
+
+```mermaid
+flowchart TD
+    A[Seeed B601-RS + reBot Leader] --> B[Teleoperation Demonstrations]
+    B --> C[LeRobot Dataset: 50 Episodes]
+    C --> D[ACT Behavior Cloning]
+    C --> E[π0.5 Fine-Tuning]
+    D --> F[Real-Robot Rollout]
+    E --> F
+    F --> G[Failure Review]
+    G --> H[Camera / Trajectory / Inference Optimization]
+    H --> F
 ```
 
-## 数据采集与 LeRobot 数据格式
+### π0.5 Fine-Tuning Matrix
 
-### 数据采集设置
+| Experiment | Trainable Scope | Rank | Training Steps | Status |
+|---|---|---:|---:|---|
+| LoRA r16 | LoRA adapters | 16 | 80,000 | Completed |
+| LoRA r32 | LoRA adapters | 32 | 80,000 | Completed |
+| Expert-Only | Action Expert | — | 80,000 | Completed |
+| Full Fine-Tuning | Model trainable parameters | — | 80,000 | Completed |
+| Full FT + RTC | Reuse Full FT checkpoint; inference-time RTC | — | No extra training | Evaluated |
 
-操作者使用 reBot Arm 102（Leader）遥操作 Seeed B601-RS（Follower），采集电池抓取、移动、插槽对准和插入的示教轨迹。一次示教对应一个 episode，包含该次操作的连续时间步。
+## 5. Repository Guide
 
-| 项目 | ACT | π0.5 |
-|---|---|---|
-| LeRobot Dataset Repo ID | `seeed_rebot_b601_rs/test1012_2` | `seeed_rebot_b601_rs/test_1102` |
-| 示教轨迹数 | 50 条 | 50 条 |
-| 总帧数 | 29,737 | 32,666 |
-| 相机视角 | 正视（Front）、侧视（Side） | 正视（Front）、侧视（Side） |
-| 图像分辨率与相机帧率 | 640 × 480，30 FPS | 640 × 480，30 FPS |
-| 其他已记录配置 | 控制频率 30 Hz | 视频读取后端 PyAV |
+| Path | 内容 |
+|---|---|
+| [ACT/README.md](./ACT/README.md) | ACT 模型、数据集、训练配置、TE 与真机结果 |
+| [pi0.5/README.md](./pi0.5/README.md) | π0.5 数据预处理、微调方法、训练环境与推理部署 |
+| [pi0.5/EXPERIMENTS.md](./pi0.5/EXPERIMENTS.md) | 80k 训练实验台账与参数更新策略 |
+| [pi0.5/EVALUATION.md](./pi0.5/EVALUATION.md) | 25 次真机评测结果、对比与分析 |
+| [groot/README.md](./groot/README.md) | 后续模型适配预留目录 |
+| [assets/](./assets/) | 真机演示视频、预览图和操作关键帧 |
 
-50 条真机示教按**电池的初始摆放位置**均分，左侧 25 条（50%），右侧 25 条（50%）。每采集 5 条示教调整一次初始摆放位置，以覆盖同一侧的不同位置。
+## 6. Engineering Work
 
-### LeRobot 数据格式
+- 搭建 B601-RS 单臂 Leader-Follower 遥操作与双视角视觉采集流程。
+- 采集、检查并组织 LeRobot 格式的真机示教数据。
+- 完成 ACT 训练、真机部署、失败案例复盘及 TE 对照实验。
+- 基于 LeRobot 完成 π0.5 的 LoRA、Expert-Only 和 Full Fine-Tuning 实验。
+- 使用双 RTX 4090、BF16 与 Accelerate / PyTorch DDP 完成 π0.5 训练流程。
+- 在 Full FT checkpoint 上部署 RTC，并完成真机策略对比评测。
 
-LeRobot 按时间步关联相机观测、机器人状态和示教动作，并用 episode 索引将连续时间步归入同一条轨迹。
+## 7. Reproducibility Notes
 
-| 数据 | 常见字段或索引 | 含义 |
-|---|---|---|
-| 多视角图像 | `observation.images.<camera_key>` | 按相机读取当前时间步的正视与侧视画面 |
-| 机器人状态 | `observation.state` | 当前时间步记录的机器人状态向量 |
-| 示教动作 | `action` | 当前时间步的示教控制指令，用于动作监督 |
-| 任务 | `task_index` | 查表取得自然语言任务描述。π0.5 数据记录中，`0` 对应 `Insert the battery into slot` |
-| 轨迹与时间索引 | `episode_index`、`frame_index`、`timestamp` | 标识轨迹归属、轨迹内帧序号和采样时间 |
+本仓库提供项目说明、训练配置记录、实验结果和真机演示素材。当前仓库不直接托管 LeRobot 原始数据集与模型 checkpoint。复现实验需要准备对应数据集、π0.5 Base 权重、LeRobot 环境以及兼容的 B601-RS 真机平台。
 
-在 LeRobotDataset v3.0 的 Parquet/MP4 布局中，`data/` 下的 Parquet 分片存放状态、动作和索引，`videos/` 按相机存放 MP4 视频分片，`meta/episodes/` 记录轨迹边界和分片定位信息。训练端通过元数据定位同一轨迹中的数值记录和各路视频。任务映射存于 `meta/tasks.parquet`，数据版本、字段名称、维度、数据类型和帧率以对应数据集的 `meta/info.json` 为准。[LeRobot 官方格式说明](https://huggingface.co/docs/lerobot/lerobot-dataset-v3)
+训练命令、数据字段和模型配置以各子目录文档为准。由于不同实验的训练策略不同，复现时应分别核对 LoRA rank、Expert-Only 参数冻结范围和 Full FT 配置。
 
-π0.5 训练读取当前时刻的两路相机观测、机器人状态和任务文本，并用示教中的未来动作序列作为监督。预处理将归一化后的机器人状态离散化，再与任务文本拼成提示词。训练环境为 Conda `lerobot`，使用 2 张 NVIDIA RTX 4090。[ACT 采集记录](./ACT/README.md) · [π0.5 数据预处理与训练配置](./pi0.5/README.md) · [π0.5 实验记录](./pi0.5/EXPERIMENTS.md)
-
-## 5. Repository Structure
-
-```text
-b601rs-battery-insertion/
-├── README.md
-├── ACT/
-│   └── README.md
-├── pi0.5/
-│   ├── README.md
-│   └── EXPERIMENTS.md
-├── groot/
-│   └── README.md
-├── .gitignore
-└── LICENSE
-```
-
-## 6. Experiment Records
-
-每组实验记录以下内容：
-
-- **Robot & Task：** 机械臂型号、相机布局、控制频率和任务定义。
-- **Dataset：** Repo ID、Episode 数量、Frame 数量、任务文本和数据划分。
-- **Model：** Base Checkpoint、模型结构和参数更新范围。
-- **Training：** GPU、精度、Batch Size、Steps、Epoch、Optimizer 和 Scheduler。
-- **Inference：** Checkpoint、Action Chunk、推理频率和控制接口。
-- **Evaluation：** 测试次数、成功次数、成功率、完成时间和失败阶段。
-
-## 7. References
+## References
 
 - [LeRobot](https://github.com/huggingface/lerobot)
 - [OpenPI](https://github.com/Physical-Intelligence/openpi)
