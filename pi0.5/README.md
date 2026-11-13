@@ -8,7 +8,7 @@
 > **Dataset Size:** 50 Episodes / 32,666 Frames  
 > **Training:** LoRA r32 / Expert-Only / Full Fine-Tuning，均完成 80,000 steps  
 > **Hardware:** 2 × NVIDIA RTX 4090  
-> **Best Real-Robot Result:** Full FT + RTC，23/25（92%）
+> **Best Real-Robot Result:** Full FT + RTC，21/25（84%）
 
 ## 1. Project Overview
 
@@ -258,7 +258,7 @@ Real-Time Chunking（RTC）用于处理机器人执行当前动作段时，后�
 - 动作重叠区域的衔接；
 - 在线执行过程中的动作连续性。
 
-**实验口径：** Full FT + RTC 复用 80,000-step Full FT checkpoint。92% 是 RTC 推理配置下的真机评测结果，不代表 RTC 单独训练了一个新模型。
+**实验口径：** Full FT + RTC 复用 80,000-step Full FT checkpoint。84% 是 RTC 推理配置下的真机评测结果，不代表 RTC 单独训练了一个新模型。
 
 ## 6. Results
 
@@ -269,14 +269,14 @@ Real-Time Chunking（RTC）用于处理机器人执行当前动作段时，后�
 | LoRA r32 | 80,000 | 9 / 25 | 36% |
 | Expert-Only | 80,000 | 13 / 25 | 52% |
 | Full Fine-Tuning | 80,000 | 19 / 25 | 76% |
-| Full FT + RTC | Reuse Full FT 80k checkpoint | 23 / 25 | **92%** |
+| Full FT + RTC | Reuse Full FT 80k checkpoint | 21 / 25 | **84%** |
 
 详细结果与分析见 [EVALUATION.md](./EVALUATION.md)，训练过程台账见 [EXPERIMENTS.md](./EXPERIMENTS.md)。
 
 ### 6.1 Experimental Observations
 
 - 在当前任务和数据设置下，LoRA r32、Expert-Only、Full FT 的成功率依次为 36%、52%、76%。
-- Full FT + RTC 相较于 Full FT 提高 16 个百分点，对应 25 次测试中多完成 4 次任务。
+- Full FT + RTC 相较于 Full FT 提高 8 个百分点，对应 25 次测试中多完成 2 次任务。
 - 这些结果用于描述当前 B601-RS 电池插槽任务，不代表跨任务泛化结论。
 
 ## 7. Reproduction Checklist
