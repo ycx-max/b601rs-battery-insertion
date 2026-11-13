@@ -1,18 +1,33 @@
 # π0.5 Real-Robot Fine-Tuning on Seeed B601-RS
 
-使用 LeRobot 将 π0.5 适配到 Seeed B601-RS 单臂电池插槽任务。本目录记录数据预处理、模型微调、训练配置和真机评估过程。
+本项目使用 Hugging Face LeRobot 将 Physical Intelligence π0.5 Base 适配到 Seeed B601-RS 单臂电池插槽任务，完成小样本真机数据微调、不同参数更新策略对比、真机部署与 RTC 推理优化。
 
+> **Task:** Insert the battery into slot  
 > **Robot:** 1 × Seeed B601-RS Follower + 1 × reBot Arm 102 Leader  
 > **Dataset:** seeed_rebot_b601_rs/test_1102  
 > **Dataset Size:** 50 Episodes / 32,666 Frames  
-> **Training Environment:** Conda lerobot  
-> **GPU:** 2 × NVIDIA RTX 4090
+> **Training:** LoRA r16 / LoRA r32 / Expert-Only / Full Fine-Tuning，均完成 80,000 steps  
+> **Hardware:** 2 × NVIDIA RTX 4090  
+> **Best Real-Robot Result:** Full FT + RTC，23/25（92%）
 
-## 1. Task and Robot Platform
+## 1. Project Overview
 
-单臂机械臂根据相机图像、机器人 State 和任务文本，完成电池抓取、移动、插槽对准与插入。
+项目围绕同一个单臂电池插槽任务，比较不同参数更新范围对 π0.5 适配效果的影响，并在 Full Fine-Tuning checkpoint 上进一步验证 RTC 的推理优化效果。
 
-| 项目 | 配置 |
+实验包含四组完成训练的配置：
+
+1. **LoRA r16**：低秩适配，rank 16。
+2. **LoRA r32**：低秩适配，rank 32。
+3. **Expert-Only**：训练 Action Expert，冻结视觉语言主干。
+4. **Full Fine-Tuning**：开放模型中配置为可训练的参数，进行全量微调。
+
+RTC 是部署阶段的动作块衔接与在线推理策略，复用 Full Fine-Tuning checkpoint，不需要额外训练一套模型。
+
+## 2. Robot and Dataset
+
+### 2.1 Hardware
+
+| Item | Configuration |
 |---|---|
 | Follower | 1 × Seeed B601-RS |
 | Leader | 1 × reBot Arm 102 |
@@ -26,150 +41,149 @@
 | Distributed Training | Accelerate + PyTorch DDP |
 | Mixed Precision | BF16 |
 
-Base Model 本地路径：
+### 2.2 Dataset Summary
 
-```text
-/home/jing/rebot_lerobot/models/pi05_base
-```
-
-## 2. Dataset and Preprocessing
-
-### 2.1 Dataset Summary
-
-| 项目 | 记录 |
+| Item | Value |
 |---|---|
 | Dataset Repo ID | seeed_rebot_b601_rs/test_1102 |
 | Episodes | 50 |
 | Frames | 32,666 |
-| Video Backend | pyav |
+| Task Text | Insert the battery into slot |
+| Task Index | 0 |
 | Camera Views | Front / Side |
 | Image Resolution | 640 × 480 |
 | Camera FPS | 30 FPS |
+| Video Backend | PyAV |
 
-示教数据的电池初始位置分布：左侧 25 条（50%），右侧 25 条（50%）。
+50 条真机示教按电池初始摆放区域均分：左侧 25 条、右侧 25 条。每采集 5 条示教调整一次初始摆放位置，以覆盖同一侧的不同相对位置。
 
-### 2.2 Task Description
+### 2.3 Data Representation
 
-数据集的 meta/tasks.parquet 内容：
+LeRobot 数据按时间步关联多视角图像、机器人状态、动作和任务索引。
 
-| task 文本 | task_index |
-|---|---:|
-| Insert the battery into slot | 0 |
+| Data | Field | Meaning |
+|---|---|---|
+| Camera Images | observation.images.<camera_key> | Front / Side 当前时刻图像 |
+| Robot State | observation.state | 当前机器人状态向量 |
+| Action | action | 示教动作，用于动作监督 |
+| Task | task_index | 任务文本索引，0 对应 Insert the battery into slot |
+| Episode / Frame | episode_index、frame_index、timestamp | 轨迹归属、帧序号与时间戳 |
 
-### 2.3 π0.5 Prompt Construction
+### 2.4 π0.5 Prompt Construction
 
-LeRobot 的 π0.5 预处理代码位于：
+数据预处理代码位置：LeRobot 的 pi05 processor。
 
-```text
-lerobot/src/lerobot/policies/pi05/processor_pi05.py
-```
+当前记录的处理流程：
 
-预处理过程：
-
-1. 读取机器人 State。
-2. 将 State 补齐到 max_state_dim。
+1. 读取当前时间步的机器人 State。
+2. 将 State 补齐到模型要求的 max_state_dim。
 3. 使用 Normalizer Processor 将 State 归一化到 [-1, 1]。
 4. 将归一化 State 离散化为 256 个区间。
-5. 将任务文本与离散化 State 拼接成 Prompt。
+5. 将任务文本与离散化 State 组合成 Prompt。
+6. 将当前视觉观测与 Prompt 输入模型，以未来连续动作序列作为监督目标。
 
-代码中的 Prompt 模板：
+Prompt 模板：
 
-```python
+~~~python
 full_prompt = f"Task: {cleaned_text}, State: {state_str};\nAction: "
-```
+~~~
 
-当前数据集生成的 Prompt 结构：
+本项目的任务 Prompt：
 
-```text
+~~~text
 Task: Insert the battery into slot, State: <discretized state values>;
 Action:
-```
+~~~
 
-其中 State 数值由当前时间步的机器人状态计算得到。模型输入包含任务文本、离散化 State 和视觉观测，动作预测由连续机器人动作数据监督。
+训练样本可抽象为：
 
-### 2.4 Training Sample
+- 图像观测：当前 Front / Side 视觉输入。
+- 机器人状态：当前时间步 State。
+- 语言条件：Insert the battery into slot。
+- 动作监督：未来动作序列。
 
-一个训练样本可以表示为：
+## 3. Fine-Tuning Strategies
 
-$$
-(\mathcal{I}_t,\ \mathbf{s}_t,\ \ell,\ \mathbf{A}_t)
-$$
+### 3.1 Experiment Matrix
 
-- $\mathcal{I}_t$：当前时刻的相机图像。
-- $\mathbf{s}_t$：机器人 State。
-- $\ell$：任务文本。
-- $\mathbf{A}_t$：未来动作序列。
+所有 π0.5 训练实验均已完成 80,000 steps。
 
-## 3. π0.5 Fine-Tuning Strategies
+| Experiment | Update Strategy | Rank | Final Steps | Training Status |
+|---|---|---:|---:|---|
+| LoRA r16 | Low-Rank Adaptation | 16 | 80,000 | Completed |
+| LoRA r32 | Low-Rank Adaptation | 32 | 80,000 | Completed |
+| Expert-Only | Action Expert fine-tuning | — | 80,000 | Completed |
+| Full Fine-Tuning | Full model fine-tuning | — | 80,000 | Completed |
 
-本项目开展了三种参数更新范围的实验：LoRA、Expert-Only 和 Full Fine-Tuning。
+### 3.2 LoRA
 
-### 3.1 LoRA
+LoRA 冻结原始权重，通过低秩矩阵表达权重增量：
 
-LoRA 冻结原模型权重，通过低秩矩阵表示权重更新：
+W' = W + (alpha / r) × B × A
 
-$$
-\mathbf{W}' = \mathbf{W} + \frac{\alpha}{r}\mathbf{B}\mathbf{A}
-$$
+其中 r 为低秩矩阵的 Rank。项目完成 r16 与 r32 两组 80,000-step 训练，用于比较不同低秩容量下的适配效果。
 
-其中：
+当前记录的 LoRA 目标模块：
 
-- $\mathbf{W}$：预训练权重。
-- $\mathbf{A}$、$\mathbf{B}$：可训练低秩矩阵。
-- $r$：LoRA Rank。
-- $\alpha$：缩放系数。
-
-当前代码中的 LoRA 目标模块：
-
-| 模块 | 目标层 |
+| Module Group | Target Modules |
 |---|---|
 | Action Expert Attention | q_proj、v_proj |
 | State / Action Projection | state_proj、action_in_proj、action_out_proj |
 | Action Time MLP | action_time_mlp_in、action_time_mlp_out |
 
-实验配置：
+LoRA r32 的训练参数统计记录：
 
-| Experiment | Rank | Status |
-|---|---:|---|
-| LoRA r16 | 16 | 已完成训练 |
-| LoRA r32 | 32 | 已完成训练 |
+| Metric | Value |
+|---|---:|
+| Total Parameters | 3,616,757,520 |
+| Learnable Parameters | 693,422,112 |
 
-### 3.2 Expert-Only
+### 3.3 Expert-Only
 
-Expert-Only 将训练集中在 Action Expert 相关模块，冻结 PaliGemma 视觉语言主干，适配机器人动作生成能力。
+Expert-Only 将训练范围集中在 Action Expert 相关模块，冻结 PaliGemma 视觉语言主干，使动作专家适配当前机器人数据。该组训练完成 80,000 steps。
 
-当前已开展 Expert-Only 训练，训练结果记录在 pi0.5/EXPERIMENTS.md。
+### 3.4 Full Fine-Tuning
 
-### 3.3 Full Fine-Tuning
+Full Fine-Tuning 开放模型中配置为可训练的参数，训练配置中：
 
-Full Fine-Tuning 更新模型中配置为可训练的参数。当前训练配置：
-
-```text
+~~~text
 policy.freeze_vision_encoder = false
 policy.train_expert_only = false
-```
+~~~
 
-该组实验使用双卡 DDP，训练目标设置为 80,000 Steps。
+该组训练完成 80,000 steps，是后续 RTC 真机推理实验使用的模型 checkpoint。
 
-## 4. Training Configuration
+## 4. Training Environment
 
-### 4.1 DDP Configuration
+### 4.1 Hardware and Runtime
 
-| 参数 | 配置 | 含义 |
-|---|---:|---|
-| GPU | 2 × RTX 4090 | 双卡训练 |
-| num_processes | 2 | 两个训练进程 |
-| mixed_precision | bf16 | BF16 混合精度 |
-| batch_size | 4 | 每个进程的 Batch Size |
-| Global Batch Size | 8 | 4 × 2 |
-| num_workers | 0 | DataLoader Worker 数量 |
-| gradient_checkpointing | true | 激活重计算，降低显存占用 |
-| compile_model | false | 关闭模型编译 |
-| video_backend | pyav | 视频读取后端 |
+| Item | Configuration |
+|---|---|
+| GPU | 2 × NVIDIA RTX 4090 |
+| Distributed Launcher | Accelerate |
+| Distributed Backend | PyTorch DDP |
+| Mixed Precision | BF16 |
+| Video Backend | PyAV |
+| Framework | LeRobot |
+| Environment | Conda: lerobot |
+
+记录的 Full Fine-Tuning DDP 配置：
+
+| Parameter | Value |
+|---|---:|
+| num_processes | 2 |
+| Per-device Batch Size | 4 |
+| Global Batch Size | 8 |
+| num_workers | 0 |
+| gradient_checkpointing | true |
+| compile_model | false |
+| Training Steps | 80,000 |
 
 ### 4.2 Full Fine-Tuning Command
 
-```bash
+以下为记录的 Full Fine-Tuning 启动配置。将 PI05_BASE_PATH 替换为本地 π0.5 Base 权重路径后运行。
+
+~~~bash
 conda activate lerobot
 
 CUDA_VISIBLE_DEVICES=0,1 \
@@ -183,7 +197,7 @@ accelerate launch \
   --module lerobot.scripts.lerobot_train \
   --dataset.repo_id=seeed_rebot_b601_rs/test_1102 \
   --dataset.video_backend=pyav \
-  --policy.path=/home/jing/rebot_lerobot/models/pi05_base \
+  --policy.path=PI05_BASE_PATH \
   --policy.device=cuda \
   --policy.dtype=bfloat16 \
   --policy.gradient_checkpointing=true \
@@ -201,86 +215,76 @@ accelerate launch \
   --save_checkpoint=true \
   --save_freq=2000 \
   --wandb.enable=true
-```
+~~~
 
-### 4.3 Epoch Calculation
+LoRA 与 Expert-Only 的训练方式不同于上述 Full FT 命令，应分别设置 PEFT Rank 或 Expert-Only 参数更新范围；四组训练实验的最终步数均为 80,000。
 
-数据集包含 32,666 Frames，双卡全局 Batch Size 为 8。等效 Epoch 计算公式：
+### 4.3 Equivalent Dataset Passes
 
-$$
-\mathrm{Epochs} = \frac{S \times B}{N}
-$$
+在全局 Batch Size 为 8 的记录配置下，数据集包含 32,666 Frames：
 
-其中 $S$ 为训练 Steps，$B$ 为 Global Batch Size，$N$ 为数据集 Frame 数量。
+80,000 × 8 / 32,666 ≈ 19.59
 
-每个等效 Epoch 对应的训练步数：
+即按该 Batch Size 估算，80,000 steps 对应约 19.59 次数据集等效遍历。该数值是按帧数和全局 Batch Size 计算的估算值，不代表独立的 Epoch 配置。
 
-$$
-\frac{32,666}{8} \approx 4,083\ \mathrm{Steps}
-$$
+## 5. Real-Robot Deployment and RTC
 
-| Training Steps | Equivalent Epochs |
-|---:|---:|
-| 20,000 | 4.90 |
-| 30,000 | 7.35 |
-| 40,000 | 9.80 |
-| 60,000 | 14.69 |
-| 80,000 | 19.59 |
+### 5.1 Inference Pipeline
 
-## 5. Training Results
+1. 读取 Front / Side 双视角图像。
+2. 读取机器人 State 并执行 π0.5 对应预处理。
+3. 构造任务文本与离散化 State Prompt。
+4. 使用微调后的 π0.5 checkpoint 预测动作序列。
+5. 将动作序列发送至 B601-RS 执行。
+6. 观察抓取、对准和插入结果，记录成功或失败。
 
-### 5.1 LoRA r32
-参数统计：
+### 5.2 RTC
 
-| Metric | Value |
-|---|---:|
-| Total Parameters | 3,616,757,520 |
-| Learnable Parameters | 693,422,112 |
+Real-Time Chunking（RTC）用于处理机器人执行当前动作段时，后续动作段的在线生成与衔接问题。项目在 Full Fine-Tuning checkpoint 上启用 RTC，重点涉及：
 
-### 5.2 Training Metrics
+- 当前动作队列的剩余长度；
+- 后续动作块的推理触发时机；
+- 新旧动作块的时间对齐；
+- 动作重叠区域的衔接；
+- 在线执行过程中的动作连续性。
 
-训练期间重点观察：
+**实验口径：** Full FT + RTC 复用 80,000-step Full FT checkpoint。92% 是 RTC 推理配置下的真机评测结果，不代表 RTC 单独训练了一个新模型。
 
-- Loss：动作预测误差。
-- Gradient Norm：梯度变化。
-- Learning Rate：学习率调度。
-- Update Time：单步参数更新耗时。
-- Data Loading Time：数据读取耗时。
+## 6. Results
 
-## 6. Real-Robot Evaluation
+四种 π0.5 训练实验均完成 80,000 steps。当前成功率对比包含完成 25 次真机评测的三种训练策略，以及 Full FT checkpoint 的 RTC 推理配置。
 
-π0.5 在 B601-RS 单臂平台上进行电池插槽任务真机测试。不同微调策略及 RTC 组合的成功率如下：
+| Model / Inference | Training Steps | Successes / Trials | Success Rate |
+|---|---:|---:|---:|
+| LoRA r32 | 80,000 | 9 / 25 | 36% |
+| Expert-Only | 80,000 | 13 / 25 | 52% |
+| Full Fine-Tuning | 80,000 | 19 / 25 | 76% |
+| Full FT + RTC | Reuse Full FT 80k checkpoint | 23 / 25 | **92%** |
+| LoRA r16 | 80,000 | Not listed in this comparison | — |
 
-| Experiment | Fine-Tuning / Inference Strategy | Task Success Rate |
-|---|---|---:|
-| LoRA r32 | Rank = 32 | 36% |
-| Expert-Only | 仅训练 Action Expert | 52% |
-| Full Fine-Tuning | 全参数微调 | 76% |
-| Full Fine-Tuning + RTC | 全参数微调，推理阶段启用 RTC | **92%** |
+详细结果与分析见 [EVALUATION.md](./EVALUATION.md)，训练过程台账见 [EXPERIMENTS.md](./EXPERIMENTS.md)。
 
-### 6.1 Result Analysis
+### 6.1 Experimental Observations
 
-- **LoRA r32：** 真机任务成功率为 36%。
-- **Expert-Only：** 真机任务成功率为 52%。
-- **Full Fine-Tuning：** 真机任务成功率提升至 76%。
-- **Full Fine-Tuning + RTC：** 在 Full Fine-Tuning 的基础上结合 RTC，成功率达到 92%。
+- 在当前任务和数据设置下，LoRA r32、Expert-Only、Full FT 的成功率依次为 36%、52%、76%。
+- Full FT + RTC 相较于 Full FT 提高 16 个百分点，对应 25 次测试中多完成 4 次任务。
+- LoRA r16 已完成训练，但当前没有将其成功率纳入对比表，因此不根据 Rank 推测其性能。
+- 这些结果用于描述当前 B601-RS 电池插槽任务，不代表跨任务泛化结论。
 
-该组结果体现了参数适配范围与推理时动作衔接策略对真机任务表现的影响。各实验的训练配置和成功率记录见 [实验记录表](./EXPERIMENTS.md)。
+## 7. Reproduction Checklist
 
-## 7. RTC and Asynchronous Inference
+- [x] B601-RS 单臂平台与 Leader-Follower 遥操作数据
+- [x] 50 条示教数据及左右初始位置分布
+- [x] π0.5 数据预处理与任务 Prompt 记录
+- [x] LoRA r16：80,000 steps
+- [x] LoRA r32：80,000 steps
+- [x] Expert-Only：80,000 steps
+- [x] Full Fine-Tuning：80,000 steps
+- [x] Full FT checkpoint + RTC 真机推理评测
+- [x] 不同微调策略的真机成功率对比
 
-RTC 关注机器人执行当前动作段时并行生成后续动作段，并通过时间对齐和动作衔接处理新旧动作序列。
+## References
 
-单臂 B601-RS 的 RTC 部署重点包括：
-
-- 动作队列剩余长度；
-- 新一轮推理的触发时机；
-- 模型推理耗时；
-- 新旧动作段的重叠区域；
-- 动作队列衔接与执行连续性。
-
-## 8. References
-
-- [π0.5 Real-Robot Fine-Tuning: Data, RTC and Evaluation](https://www.cnblogs.com/ZikangZhou/p/23390824/pi05-real-robot-finetuning-data-rtc)
 - [LeRobot](https://github.com/huggingface/lerobot)
 - [OpenPI](https://github.com/Physical-Intelligence/openpi)
+- [π0.5 Real-Robot Fine-Tuning: Data, RTC and Evaluation](https://www.cnblogs.com/ZikangZhou/p/23390824/pi05-real-robot-finetuning-data-rtc)
