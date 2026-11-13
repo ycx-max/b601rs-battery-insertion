@@ -110,6 +110,17 @@ Recorded Full FT DDP configuration:
 | compile_model | false |
 | video_backend | pyav |
 
+## 5. Experiment Configuration Summary
+
+| Experiment | Key Overrides | Final Steps |
+|---|---|---:|
+| LoRA r16 | peft.method_type=LORA；peft.r=16 | 80,000 |
+| LoRA r32 | peft.method_type=LORA；peft.r=32 | 80,000 |
+| Expert-Only | policy.train_expert_only=true | 80,000 |
+| Full Fine-Tuning | policy.freeze_vision_encoder=false；policy.train_expert_only=false | 80,000 |
+
+以上为区分各实验策略的关键配置项，不是完整独立启动命令。完整训练环境、数据集与 Full Fine-Tuning 启动配置见 [README.md](./README.md)。
+
 ## 5. Real-Robot Evaluation
 
 每组已报告的模型 / 推理配置均完成 25 次真机评测。
