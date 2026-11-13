@@ -228,13 +228,6 @@ $$
 ## 5. Training Results
 
 ### 5.1 LoRA r32
-
-| Training Step | Loss |
-|---:|---:|
-| 50 | 约 0.650 |
-| 100 | 约 0.612 |
-| 后续训练阶段 | 约 0.15–0.25 |
-
 参数统计：
 
 | Metric | Value |
