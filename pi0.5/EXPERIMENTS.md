@@ -8,7 +8,6 @@
 
 | Experiment | Update Strategy | Main Variable | Final Steps | Status |
 |---|---|---|---:|---|
-| LoRA r16 | Low-Rank Adaptation | Rank = 16 | 80,000 | Completed |
 | LoRA r32 | Low-Rank Adaptation | Rank = 32 | 80,000 | Completed |
 | Expert-Only | Train Action Expert | Action Expert 参数更新 | 80,000 | Completed |
 | Full Fine-Tuning | Full Fine-Tuning | 模型中配置为可训练的参数 | 80,000 | Completed |
@@ -47,16 +46,7 @@ RTC 不属于独立训练实验。Full FT + RTC 使用已完成 80,000 steps 的
 
 ## 4. Experiment-Specific Configuration
 
-### 4.1 LoRA r16
-
-| Item | Value |
-|---|---|
-| Method | LoRA |
-| Rank | 16 |
-| Final Training Steps | 80,000 |
-| Status | Completed |
-
-### 4.2 LoRA r32
+### 4.1 LoRA r32
 
 | Item | Value |
 |---|---|
@@ -78,7 +68,7 @@ Recorded LoRA target modules:
 - State / Action Projection: state_proj、action_in_proj、action_out_proj
 - Action Time MLP: action_time_mlp_in、action_time_mlp_out
 
-### 4.3 Expert-Only
+### 4.2 Expert-Only
 
 | Item | Value |
 |---|---|
@@ -87,7 +77,7 @@ Recorded LoRA target modules:
 | Final Training Steps | 80,000 |
 | Status | Completed |
 
-### 4.4 Full Fine-Tuning
+### 4.3 Full Fine-Tuning
 
 | Item | Value |
 |---|---|
@@ -132,7 +122,6 @@ Recorded Full FT DDP configuration:
 | Full Fine-Tuning | 80,000 steps | 19 | 25 | 76% |
 | Full FT + RTC | Reuse Full FT 80k checkpoint | 23 | 25 | **92%** |
 
-LoRA r16 完成 80,000 steps，但没有纳入当前展示的 25 次成功率对比；不根据其他 Rank 的结果推测其成功率。
 
 ## 6. Result Interpretation
 
@@ -175,7 +164,6 @@ RTC 是推理策略，不是第五组独立的 80,000-step 训练。
 
 ## 8. Final Checklist
 
-- [x] LoRA r16 完成 80,000 steps
 - [x] LoRA r32 完成 80,000 steps
 - [x] Expert-Only 完成 80,000 steps
 - [x] Full Fine-Tuning 完成 80,000 steps
