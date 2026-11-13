@@ -25,11 +25,13 @@
 | Dataset | seeed_rebot_b601_rs/test_1102 |
 | Episodes | 50 |
 | Frames | 32,666 |
-| Task Label | Insert battery into slot|
+| Task Label | Insert the battery into slot |
 | Task Index | 0 |
 | Cameras | Front / Side |
 | Resolution | 640 × 480 |
 | FPS | 30 |
+
+示教数据的电池初始位置分布：左侧 25 条（50%），右侧 25 条（50%）。
 
 ## 4. Training Environment
 
