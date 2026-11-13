@@ -2,6 +2,12 @@
 
 基于 Seeed B601-RS 单臂机械臂与 LeRobot 的真实机器人操作项目，围绕电池抓取、移动、对准和插入插槽任务，开展模仿学习与 Vision-Language-Action（VLA）策略的训练和真机部署。
 
+## 真机演示
+
+[![B601-RS 机械臂电池插槽装配真机演示](./assets/real-robot-demo-preview.webp)](./assets/real-robot-demo.mp4)
+
+[观看原始 MP4](./assets/real-robot-demo.mp4)
+
 ## 1. Project Overview
 
 | 项目 | 配置 |
