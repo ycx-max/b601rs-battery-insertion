@@ -4,7 +4,7 @@
 
 > 当前实验：**Full Fine-Tuning / 双 RTX 4090 / DDP / 50 条真机示教**
 >
-> 训练目标为 80,000 Steps；本记录所对应的恢复训练起点为 18,000 Steps。训练完成后的最终真机评估结果尚待补充。
+> 训练目标为 80,000 Steps。训练完成后的最终真机评估结果尚待补充。
 
 ## 1. 实验概览
 
@@ -170,75 +170,7 @@ accelerate launch \
 
 本次命令没有单独覆盖 Optimizer、Learning Rate 或 Scheduler 的配置值，因此不在这里填入未经本次运行配置验证的数值。后续可从本次实际生成的 `train_config.json` 中补全。
 
-## 6. 断点续训记录
-
-### 6.1 恢复位置
-
-首次训练保存到 18,000 Steps 后停止，并从该 Checkpoint 恢复：
-
-```text
-outputs/train/pi05_full_finetune_test1102/
-└── checkpoints/
-    └── 018000/
-        ├── pretrained_model/
-        │   └── train_config.json
-        └── training_state/
-```
-
-恢复配置文件：
-
-```text
-outputs/train/pi05_full_finetune_test1102/checkpoints/018000/pretrained_model/train_config.json
-```
-
-### 6.2 恢复命令
-
-```bash
-CUDA_VISIBLE_DEVICES=0,1 \
-PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
-accelerate launch \
-  --multi_gpu \
-  --num_processes=2 \
-  --num_machines=1 \
-  --mixed_precision=bf16 \
-  --dynamo_backend=no \
-  --num_cpu_threads_per_process=2 \
-  --module lerobot.scripts.lerobot_train \
-  --config_path=outputs/train/pi05_full_finetune_test1102/checkpoints/018000/pretrained_model/train_config.json \
-  --resume=true \
-  --steps=80000 \
-  --wandb.disable_artifact=true
-```
-
-`--steps=80000` 表示训练总目标仍为 80,000 Steps，并不是在 18,000 Steps 的基础上再增加 80,000 Steps。
-
-恢复时的状态：
-
-| 项目 | 数值 |
-|---|---:|
-| 恢复起点 | 18,000 Steps |
-| 总目标 | 80,000 Steps |
-| 剩余训练步数 | 62,000 Steps |
-| Global Batch Size | 8 |
-
-### 6.3 W&B Artifact
-
-首次训练期间观察到 W&B 上传了以下 Checkpoint Artifact：
-
-```text
-002000, 004000, 006000, 008000,
-010000, 012000, 014000, 016000
-```
-
-由于完整模型 Artifact 会带来额外网络流量，恢复训练时增加：
-
-```bash
---wandb.disable_artifact=true
-```
-
-该设置用于关闭 W&B 模型 Artifact 上传；W&B 指标记录仍按原配置启用。本地 Checkpoint 保存与 W&B Artifact 上传是两件不同的事情。
-
-## 7. 训练日志观察
+## 6. 训练日志观察
 
 约 19K Steps 附近观察到的日志样例：
 
@@ -254,7 +186,7 @@ accelerate launch \
 
 Loss 下降说明模型对训练数据的拟合在改善，但不能直接等同于真机任务成功率。最终需要通过独立 Rollout 评估电池抓取、移动、对准和插入表现。
 
-## 8. Epoch 等效换算
+## 7. Epoch 等效换算
 
 已知：
 
@@ -270,7 +202,6 @@ Equivalent Epochs = Steps × 8 / 32,666
 
 | Steps | 等效 Epoch |
 |---:|---:|
-| 18,000 | 4.41 |
 | 20,000 | 4.90 |
 | 30,000 | 7.35 |
 | 40,000 | 9.80 |
@@ -279,7 +210,7 @@ Equivalent Epochs = Steps × 8 / 32,666
 
 这里的 Epoch 是根据累计样本数计算的等效遍历次数，实际采样器是否完整遍历数据集还取决于 LeRobot 的数据加载与采样实现。
 
-## 9. 待补充的实验结果
+## 8. 待补充的实验结果
 
 - [ ] 训练结束时的最终 Step 与耗时
 - [ ] 最终 Training Loss / Gradient Norm
@@ -289,11 +220,10 @@ Equivalent Epochs = Steps × 8 / 32,666
 - [ ] 对电池初始位置变化的泛化测试
 - [ ] 与 ACT、LoRA Rank 16、LoRA Rank 32、Expert-Only 的统一评估对比
 
-## 10. 复现注意事项
+## 9. 复现注意事项
 
 1. 本次 Base Model 路径是本机绝对路径，其他机器需要替换。
 2. 数据集 Repo ID 需要在当前机器可访问；本仓库不包含原始示教数据。
 3. DDP 下全局 Batch Size 等于单卡 Batch Size 乘以进程数。
-4. 从 Checkpoint 恢复时，区分总训练步数与额外训练步数。
 5. 不要把 Training Loss 直接当作真机成功率。
 6. 本仓库只保存实验文档与必要配置，不提交完整模型权重、训练缓存或原始视频。
