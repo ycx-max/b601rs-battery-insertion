@@ -16,7 +16,7 @@
 | Leader | 1 × reBot Arm 102 |
 | Framework | LeRobot |
 | Policy | ACT |
-| Task | Insert the battery into the slot |
+| Task | Insert the battery into slot |
 | Camera Views | Front / Side |
 | Image Resolution | 640 × 480 |
 | Camera FPS | 30 FPS |
