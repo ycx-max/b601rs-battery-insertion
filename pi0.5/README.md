@@ -46,13 +46,15 @@ Base Model 本地路径：
 | Image Resolution | 640 × 480 |
 | Camera FPS | 30 FPS |
 
+示教数据的电池初始位置分布：左侧 25 条（50%），右侧 25 条（50%）。
+
 ### 2.2 Task Description
 
 数据集的 meta/tasks.parquet 内容：
 
 | task 文本 | task_index |
 |---|---:|
-| slot battery | 0 |
+| Insert the battery into slot | 0 |
 
 ### 2.3 π0.5 Prompt Construction
 
@@ -79,7 +81,7 @@ full_prompt = f"Task: {cleaned_text}, State: {state_str};\nAction: "
 当前数据集生成的 Prompt 结构：
 
 ```text
-Task: slot battery, State: <discretized state values>;
+Task: Insert the battery into slot, State: <discretized state values>;
 Action:
 ```
 
