@@ -121,7 +121,25 @@ W&B 记录包含 Training Loss、L1 Loss、KL Loss 和 Learning Rate。
 
 ## 5. Real-Robot Rollout
 
-训练完成后，将 ACT Checkpoint 部署到 B601-RS 单臂平台进行真机测试，多次完成电池抓取与插入任务。
+ACT 在 B601-RS 单臂平台上完成电池抓取与插入任务。针对真机失败案例进行复盘后，逐步优化相机视角、末端运动轨迹和动作时序。
+
+### 5.1 Success Rate Improvement
+
+| 实验阶段 | 调整内容 | Task Success Rate |
+|---|---|---:|
+| ACT 初始实验 | 初始相机视角与末端推压轨迹 | 56% |
+| ACT 结构与轨迹优化 | 调整腕部相机视角，优化末端推压轨迹 | 72% |
+| ACT + Temporal Ensembling | 在优化后的配置上启用 TE 模块 | **80%** |
+
+### 5.2 Failure Analysis and Optimization
+
+**腕部相机视角调整：** 复盘失败案例后调整腕部相机视角，改善末端执行器与电池、插槽区域的视觉观测。
+
+**末端推压轨迹优化：** 调整末端接近插槽后的推压轨迹，改善电池对准和插入阶段的动作执行。
+
+**Temporal Ensembling：** 在 ACT 推理过程中启用 TE，对不同时间预测得到的重叠动作进行加权融合，进一步提升动作连续性，实验成功率达到 80%。
+
+### 5.3 Evaluation Record
 
 | 评估项 | 记录内容 |
 |---|---|
