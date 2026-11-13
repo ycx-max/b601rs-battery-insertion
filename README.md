@@ -21,7 +21,7 @@
 
 整个项目围绕一条完整的机器人学习链路展开：
 
-\`\`\`text
+```text
 Robot & Task Setup
         ↓
 Teleoperation Demonstrations
@@ -35,13 +35,13 @@ Checkpoint Selection
 Real-Robot Rollout
         ↓
 Failure Analysis & Data Iteration
-\`\`\`
+```
 
 不同策略共享同一类机器人任务，但数据版本、输入表示、动作空间和训练目标可能不同。对比时应明确标注具体实验配置，不能只按模型名称直接比较结果。
 
 ## 3. Repository Structure
 
-\`\`\`text
+```text
 b601rs-battery-insertion/
 ├── README.md
 ├── ACT/
@@ -53,7 +53,7 @@ b601rs-battery-insertion/
 │   └── README.md
 ├── .gitignore
 └── LICENSE
-\`\`\`
+```
 
 ## 4. π0.5 Experiments
 
@@ -61,11 +61,11 @@ b601rs-battery-insertion/
 
 | Item | Value |
 |---|---|
-| Dataset Repo ID | \`seeed_rebot_b601_rs/test_1102\` |
+| Dataset Repo ID | `seeed_rebot_b601_rs/test_1102` |
 | Episodes | 50 |
 | Frames | 32,666 |
-| Task label in \`tasks.parquet\` | \`slot battery\` |
-| Training environment | Conda \`lerobot\` |
+| Task label in `tasks.parquet` | `slot battery` |
+| Training environment | Conda `lerobot` |
 | GPU platform | 2 × RTX 4090（双卡实验） |
 
 实验包含 LoRA r16、LoRA r32、Expert-Only 和 Full Fine-Tuning 等不同参数更新策略。具体训练配置、Prompt 构造、Epoch 换算与待完成的真机评估见 [π0.5 实验文档](./pi0.5/README.md) 和 [实验记录表](./pi0.5/EXPERIMENTS.md)。
