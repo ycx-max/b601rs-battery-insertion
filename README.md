@@ -20,7 +20,29 @@
 | π0.5 | [pi0.5/](./pi0.5/) | LoRA、Expert-Only、Full Fine-Tuning 与 VLA 真机适配 |
 | GR00T | [groot/](./groot/) | 后续模型适配与实验记录 |
 
-## 3. Research Workflow
+## 3. Key Real-Robot Results
+
+当前单臂电池插槽任务的阶段性真机成功率：
+
+| Policy / Experiment | 优化方式 | Success Rate |
+|---|---|---:|
+| ACT | 初始实验 | 56% |
+| ACT | 调整腕部相机视角与末端推压轨迹 | 72% |
+| ACT + TE | 启用 Temporal Ensembling | 80% |
+| π0.5 LoRA r32 | Rank = 32 | 36% |
+| π0.5 Expert-Only | 仅训练 Action Expert | 52% |
+| π0.5 Full Fine-Tuning | 全参数微调 | 76% |
+| π0.5 Full FT + RTC | 全参数微调并启用 RTC | **92%** |
+
+### ACT 优化过程
+
+通过复盘 ACT 真机失败案例，调整腕部相机视角和末端推压轨迹，成功率由 56% 提升至 72%；进一步启用 Temporal Ensembling（TE）后，成功率达到 80%。
+
+### π0.5 微调与推理优化
+
+π0.5 不同微调策略的真机成功率分别为：LoRA r32 36%、Expert-Only 52%、Full Fine-Tuning 76%。在 Full Fine-Tuning 模型上进一步结合 RTC，成功率达到 92%。
+
+## 4. Research Workflow
 
 ```text
 Single-Arm Robot Setup
