@@ -15,9 +15,6 @@
 
 | Metric | Recorded Value |
 |---|---:|
-| Step 50 Loss | ~0.650 |
-| Step 100 Loss | ~0.612 |
-| Later Loss Range | ~0.15–0.25 |
 | Total Parameters | 3,616,757,520 |
 | Learnable Parameters | 693,422,112 |
 
