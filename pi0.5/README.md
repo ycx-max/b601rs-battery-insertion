@@ -73,7 +73,7 @@ lerobot/src/lerobot/policies/pi05/processor_pi05.py
 代码中的 Prompt 模板：
 
 ```python
-full_prompt = f"Task: {cleaned_text}, State: {state_str};\\nAction: "
+full_prompt = f"Task: {cleaned_text}, State: {state_str};\nAction: "
 ```
 
 当前数据集生成的 Prompt 结构：
