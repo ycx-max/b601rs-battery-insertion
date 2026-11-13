@@ -20,9 +20,9 @@
 | 示教数据 | 50 条真机 Episode，左侧 25 条、右侧 25 条 |
 | 视觉输入 | Front / Side 双视角，640 × 480，30 FPS |
 | ACT | 初始成功率 56%；视角与轨迹优化后 72%；启用 TE 后 80% |
-| π0.5 | LoRA r32 36%；Expert-Only 52%；Full FT 76%；Full FT + RTC 92% |
+| π0.5 | LoRA r32 36%；Expert-Only 52%；Full FT 76%；Full FT + RTC 84% |
 | π0.5 训练 | LoRA r32、Expert-Only、Full FT 均完成 80,000 steps |
-| 最高真机成功率 | π0.5 Full FT + RTC：23/25（92%） |
+| 最高真机成功率 | π0.5 Full FT + RTC：21/25（84%） |
 
 **评测口径：** 表中 ACT 和 π0.5 的成功率均对应 25 次真机测试。RTC 是 Full FT checkpoint 的推理策略，不是额外训练出的模型。
 
@@ -79,12 +79,12 @@
 | π0.5 LoRA r32 | Rank = 32 | 9/25 | 36% |
 | π0.5 Expert-Only | 训练 Action Expert | 13/25 | 52% |
 | π0.5 Full Fine-Tuning | 全量微调 | 19/25 | 76% |
-| π0.5 Full FT + RTC | Full FT checkpoint + RTC 推理 | 23/25 | **92%** |
+| π0.5 Full FT + RTC | Full FT checkpoint + RTC 推理 | 21/25 | **84%** |
 
 
 **关键观察：**
 - 在本任务和当前实验设置下，参数更新范围更大的 Full FT 获得了高于 LoRA r32 与 Expert-Only 的真机成功率。
-- 在 Full FT checkpoint 上启用 Real-Time Chunking（RTC）后，成功率从 76% 提升至 92%。
+- 在 Full FT checkpoint 上启用 Real-Time Chunking（RTC）后，成功率从 76% 提升至 84%。
 - 上述结论是当前单臂电池插槽任务的实验观察，不外推为不同机器人或任务上的普遍结论。
 
 ## 4. Technical Workflow
