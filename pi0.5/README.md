@@ -227,7 +227,7 @@ accelerate launch \
   --wandb.enable=true
 ~~~
 
-LoRA 与 Expert-Only 的训练方式不同于上述 Full FT 命令，应分别设置 PEFT Rank 或 Expert-Only 参数更新范围；四组训练实验的最终步数均为 80,000。
+LoRA 与 Expert-Only 的训练方式不同于上述 Full FT 命令，应分别设置 PEFT Rank 或 Expert-Only 参数更新范围；三组训练实验的最终步数均为 80,000。
 
 ### 4.3 Equivalent Dataset Passes
 
