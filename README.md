@@ -16,7 +16,7 @@
 
 | 项目 | 配置 |
 |---|---|
-| Task | Battery grasping and slot insertion |
+| Task | Insert the battery into slot |
 | Follower | 1 × Seeed B601-RS |
 | Leader | 1 × reBot Arm 102 |
 | Framework | LeRobot |
@@ -85,7 +85,7 @@ Failure Analysis & Data Iteration
 | 图像分辨率与相机帧率 | 640 × 480，30 FPS | 640 × 480，30 FPS |
 | 其他已记录配置 | 控制频率 30 Hz | 视频读取后端 PyAV |
 
-ACT 示教按**电池的初始摆放位置**分布，左侧 25 条（50%），右侧 25 条（50%）。每采集 5 条示教调整一次初始摆放位置，以覆盖同一侧的不同位置。
+50 条真机示教按**电池的初始摆放位置**均分，左侧 25 条（50%），右侧 25 条（50%）。每采集 5 条示教调整一次初始摆放位置，以覆盖同一侧的不同位置。
 
 ### LeRobot 数据格式
 
@@ -96,7 +96,7 @@ LeRobot 按时间步关联相机观测、机器人状态和示教动作，并用
 | 多视角图像 | `observation.images.<camera_key>` | 按相机读取当前时间步的正视与侧视画面 |
 | 机器人状态 | `observation.state` | 当前时间步记录的机器人状态向量 |
 | 示教动作 | `action` | 当前时间步的示教控制指令，用于动作监督 |
-| 任务 | `task_index` | 查表取得自然语言任务描述。π0.5 数据记录中，`0` 对应 `slot battery` |
+| 任务 | `task_index` | 查表取得自然语言任务描述。π0.5 数据记录中，`0` 对应 `Insert the battery into slot` |
 | 轨迹与时间索引 | `episode_index`、`frame_index`、`timestamp` | 标识轨迹归属、轨迹内帧序号和采样时间 |
 
 在 LeRobotDataset v3.0 的 Parquet/MP4 布局中，`data/` 下的 Parquet 分片存放状态、动作和索引，`videos/` 按相机存放 MP4 视频分片，`meta/episodes/` 记录轨迹边界和分片定位信息。训练端通过元数据定位同一轨迹中的数值记录和各路视频。任务映射存于 `meta/tasks.parquet`，数据版本、字段名称、维度、数据类型和帧率以对应数据集的 `meta/info.json` 为准。[LeRobot 官方格式说明](https://huggingface.co/docs/lerobot/lerobot-dataset-v3)
