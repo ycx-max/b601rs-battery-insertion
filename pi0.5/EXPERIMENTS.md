@@ -47,14 +47,14 @@
 | Mixed Precision | BF16 |
 | Video Backend | PyAV |
 
-## 5. Rollout Comparison
+## 5. Real-Robot Success Rate
 
-| Experiment | Final Step | Training Time | Final Loss | Rollout Success |
-|---|---:|---:|---:|---:|
-| LoRA r16 | 待补充 | 待补充 | 待补充 | 待评估 |
-| LoRA r32 | 待补充 | 待补充 | 待补充 | 待评估 |
-| Expert-Only | 待补充 | 待补充 | 待补充 | 待评估 |
-| Full Fine-Tuning | 目标 80,000 | 待补充 | 待补充 | 待评估 |
+| Experiment | Fine-Tuning / Inference Strategy | Task Success Rate |
+|---|---|---:|
+| LoRA r32 | Rank = 32 | 36% |
+| Expert-Only | 仅训练 Action Expert | 52% |
+| Full Fine-Tuning | 全参数微调 | 76% |
+| Full Fine-Tuning + RTC | 全参数微调并启用 RTC | **92%** |
 
 ## 6. Evaluation Metrics
 
