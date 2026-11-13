@@ -8,6 +8,10 @@
 
 [观看原始 MP4](./assets/real-robot-demo.mp4)
 
+### 真机演示关键帧
+
+![电池插槽装配演示的 8 个关键帧（0.0–25.8 秒）](./assets/real-robot-demo-frames.png)
+
 ## 1. Project Overview
 
 | 项目 | 配置 |
