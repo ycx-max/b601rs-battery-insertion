@@ -25,7 +25,7 @@
 | Dataset | seeed_rebot_b601_rs/test_1102 |
 | Episodes | 50 |
 | Frames | 32,666 |
-| Task Label | slot battery |
+| Task Label | Insert battery into slot|
 | Task Index | 0 |
 | Cameras | Front / Side |
 | Resolution | 640 × 480 |
