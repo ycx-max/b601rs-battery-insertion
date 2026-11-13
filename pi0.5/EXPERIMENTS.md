@@ -29,17 +29,17 @@
 
 | Item | Value |
 |---|---|
-| Dataset | \`seeed_rebot_b601_rs/test_1102\` |
+| Dataset | `seeed_rebot_b601_rs/test_1102` |
 | Episodes | 50 |
 | Frames | 32,666 |
-| Dataset task label | \`slot battery\` |
+| Dataset task label | `slot battery` |
 | Task index | 0 |
 
 ### Training Environment
 
 | Item | Value |
 |---|---|
-| Conda environment | \`lerobot\` |
+| Conda environment | `lerobot` |
 | Framework | LeRobot |
 | GPU | 2 × RTX 4090（双卡实验） |
 | Distributed launcher | Accelerate |
