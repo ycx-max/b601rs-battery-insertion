@@ -28,7 +28,6 @@ Seeed B601-RS 单臂电池插槽任务的 π0.5 微调策略与 RTC 推理评估
 | π0.5 Full Fine-Tuning | 80,000 | 19 | 25 | 76% |
 | π0.5 Full FT + RTC | Reuse Full FT 80k checkpoint | 23 | 25 | **92%** |
 
-LoRA r16 完成 80,000 steps，但没有纳入本页展示的成功率对比。
 
 ## 3. Comparison
 
@@ -62,7 +61,6 @@ RTC 通过在线处理新旧动作块之间的衔接，改善动作执行阶段�
 
 | Training Run | Final Steps | Status |
 |---|---:|---|
-| LoRA r16 | 80,000 | Completed |
 | LoRA r32 | 80,000 | Completed |
 | Expert-Only | 80,000 | Completed |
 | Full Fine-Tuning | 80,000 | Completed |
