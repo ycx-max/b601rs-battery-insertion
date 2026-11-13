@@ -84,7 +84,7 @@
 
 **关键观察：**
 - 在本任务和当前实验设置下，参数更新范围更大的 Full FT 获得了高于 LoRA r32 与 Expert-Only 的真机成功率。
-- 在 Full FT checkpoint 上启用 Real-Time Chunking（RTC）后，成功率从 76% 提升至 84%。
+- 在 Full FT checkpoint 上启用 Real-Time Chunking（RTC）后，成功率从 76% 提升至 84%，提升 8 个百分点，对应 25 次测试中多完成 2 次任务。
 - 上述结论是当前单臂电池插槽任务的实验观察，不外推为不同机器人或任务上的普遍结论。
 
 ## 4. Technical Workflow
