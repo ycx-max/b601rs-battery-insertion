@@ -254,20 +254,23 @@ $$
 
 ## 6. Real-Robot Evaluation
 
-π0.5 模型部署到 B601-RS 单臂平台进行电池插槽任务测试。各组模型使用相同的初始位置和任务流程进行对比。
+π0.5 在 B601-RS 单臂平台上进行电池插槽任务真机测试。不同微调策略及 RTC 组合的成功率如下：
 
-| Evaluation Item | Description |
-|---|---|
-| Checkpoint | 模型路径与训练 Step |
-| Initial State | 电池初始位置与姿态 |
-| Grasp | 电池抓取情况 |
-| Alignment | 插槽对准情况 |
-| Insertion | 电池插入情况 |
-| Completion Time | 任务完成时间 |
-| Result | 成功 / 失败 |
-| Failure Stage | 失败发生阶段 |
+| Experiment | Fine-Tuning / Inference Strategy | Task Success Rate |
+|---|---|---:|
+| LoRA r32 | Rank = 32 | 36% |
+| Expert-Only | 仅训练 Action Expert | 52% |
+| Full Fine-Tuning | 全参数微调 | 76% |
+| Full Fine-Tuning + RTC | 全参数微调，推理阶段启用 RTC | **92%** |
 
-各组实验的最终训练步数、耗时、Loss 和真机 Rollout 统计见 [实验记录表](./EXPERIMENTS.md)。
+### 6.1 Result Analysis
+
+- **LoRA r32：** 真机任务成功率为 36%。
+- **Expert-Only：** 真机任务成功率为 52%。
+- **Full Fine-Tuning：** 真机任务成功率提升至 76%。
+- **Full Fine-Tuning + RTC：** 在 Full Fine-Tuning 的基础上结合 RTC，成功率达到 92%。
+
+该组结果体现了参数适配范围与推理时动作衔接策略对真机任务表现的影响。各实验的训练配置和成功率记录见 [实验记录表](./EXPERIMENTS.md)。
 
 ## 7. RTC and Asynchronous Inference
 
