@@ -153,6 +153,19 @@ policy.train_expert_only = false
 
 该组训练完成 80,000 steps，是后续 RTC 真机推理实验使用的模型 checkpoint。
 
+### 3.5 Experiment Configuration Switches
+
+以下为各训练策略的关键配置差异。它们是训练配置覆盖项，应与数据集、Base Model、设备、日志和保存路径等公共参数组合使用。
+
+| Experiment | Key Configuration |
+|---|---|
+| LoRA r16 | peft.method_type=LORA；peft.r=16；steps=80000 |
+| LoRA r32 | peft.method_type=LORA；peft.r=32；steps=80000 |
+| Expert-Only | policy.train_expert_only=true；steps=80000 |
+| Full Fine-Tuning | policy.freeze_vision_encoder=false；policy.train_expert_only=false；steps=80000 |
+
+LoRA r16 与 r32 的主要对照变量为 Rank；Expert-Only 与 Full Fine-Tuning 的主要差异为可训练参数范围。四组训练均已完成 80,000 steps。
+
 ## 4. Training Environment
 
 ### 4.1 Hardware and Runtime
