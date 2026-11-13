@@ -1,19 +1,17 @@
 # π0.5 Experiment Ledger
 
-本文件用于汇总 B601-RS 电池插槽任务上的 π0.5 微调实验。它记录实验设置和已观察到的信息，不将不同训练配置的 Loss 直接当作可比指标。
+记录 Seeed B601-RS 单臂电池插槽任务上的 π0.5 微调实验。
 
 ## 1. Experiment Matrix
 
-| Experiment | Update Strategy | Main Variable | Recorded Status |
+| Experiment | Update Strategy | Main Variable | Status |
 |---|---|---|---|
-| LoRA r16 | Low-rank adaptation | Rank = 16 | 已开展训练 |
-| LoRA r32 | Low-rank adaptation | Rank = 32 | 已开展训练；有阶段性 Loss 与参数量记录 |
-| Expert-Only | Train action expert only | Restrict trainable modules | 已开展训练 |
-| Full Fine-Tuning | Update all configured trainable parameters | Full model update | 已记录双卡 DDP 配置；目标 80,000 Steps，最终完成状态待补 |
+| LoRA r16 | Low-Rank Adaptation | Rank = 16 | 已完成训练 |
+| LoRA r32 | Low-Rank Adaptation | Rank = 32 | 已完成训练 |
+| Expert-Only | Train Action Expert | Action Expert 参数更新 | 已开展训练 |
+| Full Fine-Tuning | Full Model Fine-Tuning | 全模型可训练参数更新 | 已启动，目标 80,000 Steps |
 
-## 2. Known Training Records
-
-### LoRA r32
+## 2. LoRA r32 Training Record
 
 | Metric | Recorded Value |
 |---|---:|
@@ -23,48 +21,50 @@
 | Total Parameters | 3,616,757,520 |
 | Learnable Parameters | 693,422,112 |
 
-这些数据是阶段性日志记录，不代表最终收敛结果。
-
-### Shared Dataset
+## 3. Dataset
 
 | Item | Value |
 |---|---|
-| Dataset | `seeed_rebot_b601_rs/test_1102` |
+| Dataset | seeed_rebot_b601_rs/test_1102 |
 | Episodes | 50 |
 | Frames | 32,666 |
-| Dataset task label | `slot battery` |
-| Task index | 0 |
+| Task Label | slot battery |
+| Task Index | 0 |
+| Cameras | Front / Side |
+| Resolution | 640 × 480 |
+| FPS | 30 |
 
-### Training Environment
+## 4. Training Environment
 
 | Item | Value |
 |---|---|
-| Conda environment | `lerobot` |
+| Conda Environment | lerobot |
 | Framework | LeRobot |
-| GPU | 2 × RTX 4090（双卡实验） |
-| Distributed launcher | Accelerate |
-| Mixed precision | BF16 |
-| Video backend | PyAV |
+| Robot | 1 × Seeed B601-RS |
+| Leader | 1 × reBot Arm 102 |
+| GPU | 2 × NVIDIA RTX 4090 |
+| Distributed Launcher | Accelerate |
+| Mixed Precision | BF16 |
+| Video Backend | PyAV |
 
-## 3. Comparison Protocol
-
-为保证对比有意义，后续各实验应尽量固定：
-
-- 数据集版本和训练 / 验证划分；
-- 相机输入、图像预处理与 State 归一化；
-- 任务文本及 Prompt 构造；
-- Global Batch Size 和累计样本访问量；
-- 真机初始状态、控制频率与评估次数。
-
-需要分别记录训练目标、参数更新范围、训练预算和真机结果。不能仅凭 LoRA Rank 或单次训练 Loss 判断哪种方案更好。
-
-## 4. Results To Add
+## 5. Rollout Comparison
 
 | Experiment | Final Step | Training Time | Final Loss | Rollout Success |
 |---|---:|---:|---:|---:|
 | LoRA r16 | 待补充 | 待补充 | 待补充 | 待评估 |
 | LoRA r32 | 待补充 | 待补充 | 待补充 | 待评估 |
 | Expert-Only | 待补充 | 待补充 | 待补充 | 待评估 |
-| Full Fine-Tuning | 待补充 | 待补充 | 待补充 | 待评估 |
+| Full Fine-Tuning | 目标 80,000 | 待补充 | 待补充 | 待评估 |
 
-成功率应记录为成功次数 / 总测试次数，并注明测试场景和失败阶段。
+## 6. Evaluation Metrics
+
+每组模型记录以下真机指标：
+
+- 成功次数 / 总测试次数；
+- 电池抓取成功率；
+- 插槽对准成功率；
+- 插入成功率；
+- 平均任务完成时间；
+- 各阶段失败次数。
+
+各组模型采用相同的任务流程和测试场景进行比较。
