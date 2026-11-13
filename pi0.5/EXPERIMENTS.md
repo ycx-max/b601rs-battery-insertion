@@ -104,7 +104,6 @@ Recorded Full FT DDP configuration:
 
 | Experiment | Key Overrides | Final Steps |
 |---|---|---:|
-| LoRA r16 | peft.method_type=LORA；peft.r=16 | 80,000 |
 | LoRA r32 | peft.method_type=LORA；peft.r=32 | 80,000 |
 | Expert-Only | policy.train_expert_only=true | 80,000 |
 | Full Fine-Tuning | policy.freeze_vision_encoder=false；policy.train_expert_only=false | 80,000 |
