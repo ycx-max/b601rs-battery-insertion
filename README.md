@@ -21,10 +21,10 @@
 | 视觉输入 | Front / Side 双视角，640 × 480，30 FPS |
 | ACT | 初始成功率 56%；视角与轨迹优化后 72%；启用 TE 后 80% |
 | π0.5 | LoRA r32 36%；Expert-Only 52%；Full FT 76%；Full FT + RTC 92% |
-| π0.5 训练 | LoRA r16、LoRA r32、Expert-Only、Full FT 均完成 80,000 steps |
+| π0.5 训练 | LoRA r32、Expert-Only、Full FT 均完成 80,000 steps |
 | 最高真机成功率 | π0.5 Full FT + RTC：23/25（92%） |
 
-**评测口径：** 表中 ACT 和 π0.5 的成功率均对应 25 次真机测试。LoRA r16 已完成 80,000 steps，但没有纳入当前展示的 25 次成功率对比，因此不为其补写成功率。RTC 是 Full FT checkpoint 的推理策略，不是额外训练出的模型。
+**评测口径：** 表中 ACT 和 π0.5 的成功率均对应 25 次真机测试。RTC 是 Full FT checkpoint 的推理策略，不是额外训练出的模型。
 
 ## 1. Task & Robot Platform
 
@@ -81,7 +81,6 @@
 | π0.5 Full Fine-Tuning | 全量微调 | 19/25 | 76% |
 | π0.5 Full FT + RTC | Full FT checkpoint + RTC 推理 | 23/25 | **92%** |
 
-LoRA r16 同样完成 80,000 steps，作为参数高效微调的补充实验记录；当前不将其纳入上述成功率对比。
 
 **关键观察：**
 - 在本任务和当前实验设置下，参数更新范围更大的 Full FT 获得了高于 LoRA r32 与 Expert-Only 的真机成功率。
@@ -107,7 +106,6 @@ flowchart TD
 
 | Experiment | Trainable Scope | Rank | Training Steps | Status |
 |---|---|---:|---:|---|
-| LoRA r16 | LoRA adapters | 16 | 80,000 | Completed |
 | LoRA r32 | LoRA adapters | 32 | 80,000 | Completed |
 | Expert-Only | Action Expert | — | 80,000 | Completed |
 | Full Fine-Tuning | Model trainable parameters | — | 80,000 | Completed |
