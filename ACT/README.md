@@ -58,7 +58,7 @@ ACT 将未来一段动作组织成 Action Chunk，通过 Transformer 学习观�
 | n_action_steps | 100 | 每次执行动作步数 |
 | n_encoder_layers | 4 | Transformer Encoder 层数 |
 | n_decoder_layers | 1 | Transformer Decoder 层数 |
-| temporal_ensemble_coeff | None | 关闭 Temporal Ensembling |
+| temporal_ensemble_coeff | None（初始配置） | 初始 ACT 实验关闭 TE；后续单独开展 TE 对照实验 |
 | Image Augmentation | Disabled | 关闭图像增强 |
 
 Vision Backbone：ResNet18。
