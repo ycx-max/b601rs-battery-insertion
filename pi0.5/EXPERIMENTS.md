@@ -110,7 +110,7 @@ Recorded Full FT DDP configuration:
 
 以上为区分各实验策略的关键配置项，不是完整独立启动命令。完整训练环境、数据集与 Full Fine-Tuning 启动配置见 [README.md](./README.md)。
 
-## 5. Real-Robot Evaluation
+## 6. Real-Robot Evaluation
 
 每组已报告的模型 / 推理配置均完成 25 次真机评测。
 
@@ -122,9 +122,9 @@ Recorded Full FT DDP configuration:
 | Full FT + RTC | Reuse Full FT 80k checkpoint | 21 | 25 | **84%** |
 
 
-## 6. Result Interpretation
+## 7. Result Interpretation
 
-### 6.1 Fine-Tuning Scope
+### 7.1 Fine-Tuning Scope
 
 在当前数据集、机器人平台和任务设置下：
 
@@ -134,7 +134,7 @@ Recorded Full FT DDP configuration:
 
 本组实验显示，不同参数更新范围对应不同的真机任务表现。该结果是当前实验条件下的观察，不直接推断为其他任务上的普遍规律。
 
-### 6.2 RTC Inference
+### 7.2 RTC Inference
 
 Full FT + RTC 使用同一 Full FT checkpoint，在推理阶段加入 RTC：
 
@@ -144,7 +144,9 @@ Full FT + RTC 使用同一 Full FT checkpoint，在推理阶段加入 RTC：
 
 RTC 是推理策略，不是第五组独立的 80,000-step 训练。
 
-## 7. Evaluation Record Template
+RTC 的工程调试使用 62k Full FT checkpoint，目的是测量 50/30 Hz 延迟并修复冷启动污染和动作块错位；它与本表的 80k 最终成功率评测属于不同实验口径。完整过程见 [RTC_EXPERIMENT.md](./RTC_EXPERIMENT.md)。
+
+## 8. Evaluation Record Template
 
 后续如需补充逐次测试明细，可按以下字段归档：
 
@@ -161,11 +163,12 @@ RTC 是推理策略，不是第五组独立的 80,000-step 训练。
 | failure_stage | 失败阶段 |
 | notes | 其他观察 |
 
-## 8. Final Checklist
+## 9. Final Checklist
 
 - [x] LoRA r32 完成 80,000 steps
 - [x] Expert-Only 完成 80,000 steps
 - [x] Full Fine-Tuning 完成 80,000 steps
 - [x] Full FT checkpoint + RTC 推理评测
+- [x] RTC 50/30 Hz 延迟测量、冷启动排除与原子队列对齐
 - [x] 记录 25 次真机评测成功次数与成功率
 - [x] 记录数据集、任务文本、相机和机器人配置

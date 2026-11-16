@@ -49,11 +49,13 @@ RTC 在 Full Fine-Tuning checkpoint 上作为推理策略启用：
 |---|---:|
 | Full Fine-Tuning | 76% |
 | Full Fine-Tuning + RTC | **84%** |
-| Difference | **+16 percentage points** |
+| Difference | **+8 percentage points** |
 
 成功率从 76% 提升至 84%，增加 8 个百分点；成功次数从 19/25 增加到 21/25，即在这组评测中多完成 2 次任务。
 
 RTC 通过在线处理新旧动作块之间的衔接，改善动作执行阶段的连续性。该对比反映的是当前任务与评测设置下的结果。
+
+RTC 的 50/30 Hz 延迟测量、回弹问题定位、代码修复和修复后 60 秒 rollout 记录见 [RTC_EXPERIMENT.md](./RTC_EXPERIMENT.md)。其中 62k checkpoint 用于工程调试，不与本页 80k checkpoint 的最终成功率混合统计。
 
 ## 4. Training Completion
 
@@ -79,5 +81,6 @@ Full FT + RTC 复用 Full FT checkpoint，不单独训练模型。
 
 - [π0.5 Technical & Reproduction Notes](./README.md)
 - [π0.5 Experiment Ledger](./EXPERIMENTS.md)
+- [π0.5 RTC Tuning & Debug Record](./RTC_EXPERIMENT.md)
 - [Project Overview](../README.md)
 - [Real-Robot Demo](../assets/real-robot-demo.mp4)

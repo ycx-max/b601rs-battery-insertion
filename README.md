@@ -119,6 +119,7 @@ flowchart TD
 | [pi0.5/README.md](./pi0.5/README.md) | π0.5 数据预处理、微调方法、训练环境与推理部署 |
 | [pi0.5/EXPERIMENTS.md](./pi0.5/EXPERIMENTS.md) | 80k 训练实验台账与参数更新策略 |
 | [pi0.5/EVALUATION.md](./pi0.5/EVALUATION.md) | 25 次真机评测结果、对比与分析 |
+| [pi0.5/RTC_EXPERIMENT.md](./pi0.5/RTC_EXPERIMENT.md) | RTC 50/30 Hz 调参、延迟测量、回弹根因与队列修复 |
 | [groot/README.md](./groot/README.md) | 后续模型适配预留目录 |
 | [assets/](./assets/) | 真机演示视频、预览图和操作关键帧 |
 
@@ -130,6 +131,7 @@ flowchart TD
 - 基于 LeRobot 完成 π0.5 的 LoRA、Expert-Only 和 Full Fine-Tuning 实验。
 - 使用双 RTX 4090、BF16 与 Accelerate / PyTorch DDP 完成 π0.5 训练流程。
 - 在 Full FT checkpoint 上部署 RTC，并完成真机策略对比评测。
+- 完成 RTC 50/30 Hz 延迟测量，修复冷启动延迟污染和动作块一步错位。
 
 ## 7. Reproducibility Notes
 

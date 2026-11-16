@@ -14,11 +14,11 @@
 
 项目围绕同一个单臂电池插槽任务，比较不同参数更新范围对 π0.5 适配效果的影响，并在 Full Fine-Tuning checkpoint 上进一步验证 RTC 的推理优化效果。
 
-实验包含四组完成训练的配置：
+实验包含三组完成训练的配置：
 
-2. **LoRA r32**：低秩适配，rank 32。
-3. **Expert-Only**：训练 Action Expert，冻结视觉语言主干。
-4. **Full Fine-Tuning**：开放模型中配置为可训练的参数，进行全量微调。
+1. **LoRA r32**：低秩适配，rank 32。
+2. **Expert-Only**：训练 Action Expert，冻结视觉语言主干。
+3. **Full Fine-Tuning**：开放模型中配置为可训练的参数，进行全量微调。
 
 RTC 是部署阶段的动作块衔接与在线推理策略，复用 Full Fine-Tuning checkpoint，不需要额外训练一套模型。
 
@@ -271,7 +271,7 @@ Real-Time Chunking（RTC）用于处理机器人执行当前动作段时，后�
 | Full Fine-Tuning | 80,000 | 19 / 25 | 76% |
 | Full FT + RTC | Reuse Full FT 80k checkpoint | 21 / 25 | **84%** |
 
-详细结果与分析见 [EVALUATION.md](./EVALUATION.md)，训练过程台账见 [EXPERIMENTS.md](./EXPERIMENTS.md)。
+详细结果与分析见 [EVALUATION.md](./EVALUATION.md)，训练过程台账见 [EXPERIMENTS.md](./EXPERIMENTS.md)，RTC 的 50/30 Hz 延迟对比、回弹根因和队列对齐修复见 [RTC_EXPERIMENT.md](./RTC_EXPERIMENT.md)。
 
 ### 6.1 Experimental Observations
 
@@ -288,6 +288,7 @@ Real-Time Chunking（RTC）用于处理机器人执行当前动作段时，后�
 - [x] Expert-Only：80,000 steps
 - [x] Full Fine-Tuning：80,000 steps
 - [x] Full FT checkpoint + RTC 真机推理评测
+- [x] RTC 50/30 Hz 延迟测量与动作队列对齐调试
 - [x] 不同微调策略的真机成功率对比
 
 ## References
