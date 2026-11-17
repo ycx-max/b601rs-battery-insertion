@@ -29,17 +29,82 @@
 4. 定位回弹是否来自延迟估计、RTC 权重或动作块对齐；
 5. 保留 rollout 视频与可复核的延迟日志。
 
-## 2. 参数含义与首轮选择
+## 2. 参数基线与调参过程
 
-| 参数 | 作用 | 本轮最终值 |
-|---|---|---:|
-| `fps` | 动作执行频率 | 30 Hz |
-| `rtc.max_guidance_weight` | 旧动作前缀对新动作块的引导强度 | 5.0 |
-| `rtc.execution_horizon` | 新旧动作块参与 RTC 衔接的控制步数 | 10 |
-| `rtc.prefix_attention_schedule` | 前缀引导权重的衰减方式 | EXP |
-| `rtc_bootstrap_latency_s` | 首个 guided chunk 使用的稳态延迟先验 | 0.16 s |
-| `rtc_latency_percentile` | 后续延迟估计采用的稳态分位数 | 0.95 |
-| `action_queue_size_to_get_new_actions` | 队列低于该长度时触发新动作预测 | 20 |
+### 2.1 默认值、变化与最终配置
+
+本轮并不是直接选定最终参数，而是先从 LeRobot RTC 的默认/初始配置开始，在测量并修复延迟统计和动作队列对齐问题后，再逐项调参：
+
+| 参数 | LeRobot 默认/本轮初始值 | 调整后 | 变化原因 |
+|---|---:|---:|---|
+| `action_queue_size_to_get_new_actions`（`queue_threshold`） | 30 | **20** | 修复延迟与队列对齐后，依据稳态尾延迟缩小提前量，减少过早重新推理和动作块切换 |
+| `rtc.execution_horizon` | 10 | **10** | 处于建议的 8–12 步初始范围，暂不与其他变量同时改变 |
+| `rtc.max_guidance_weight` | 10.0 | **5.0** | 10.0 下旧轨迹约束偏强，降低后减弱拉回、回弹和块边界抖动 |
+| `rtc.prefix_attention_schedule` | EXP | **EXP** | 保留指数衰减，使旧动作前缀的影响逐步减弱 |
+| `fps` | 50 Hz（首轮测试） | **30 Hz** | 毫秒延迟基本不变，但推理跨越的控制步数由约 8 步降至 5 步 |
+| RTC 延迟估计 | 历史最大值，包含冷启动 | **guided P95** | 避免 397–406 ms 冷启动永久污染 RTC；P99 同时用于尾延迟监测 |
+| `rtc_bootstrap_latency_s` | 无独立稳态先验 | **0.16 s** | 首个 guided chunk 在尚无稳态样本时采用 160 ms 先验 |
+
+因此，本轮关键参数变化链为：
+
+```text
+初始：queue_threshold=30, execution_horizon=10, max_guidance_weight=10
+  ↓ 测量端到端 P95/P99，发现冷启动污染和队列对齐 bug
+修复：排除冷启动、采用 guided P95、按实际消费步数合并动作块
+  ↓
+队列：queue_threshold 30 → 20
+  ↓
+引导：max_guidance_weight 10 → 5
+最终：queue_threshold=20, execution_horizon=10, max_guidance_weight=5
+```
+
+### 2.2 四步调参方法
+
+#### 第一步：先测端到端推理延迟
+
+使用端到端 P95/P99 latency，而不是只看模型 forward 时间。端到端统计包含观测读取、预处理、同步模型推理和后处理，更接近 actor 在推理期间实际消费动作的时间。
+
+本轮正是在这一步发现了程序问题：首次 CUDA / 模型冷启动被写入历史最大延迟，且根据 `ceil(latency × fps)` 估算的步数有时比 actor 实际消费步数多 1。若不先修复这些问题，后续对 RTC 参数的判断会建立在错误的延迟和动作块对齐之上。
+
+#### 第二步：调整 `queue_threshold`
+
+以 P95 延迟对应的控制步数加安全余量作为初始参考：
+
+$$
+Q \gtrsim d_{P95} + m
+$$
+
+其中 $Q$ 为 `queue_threshold`，$d_{P95}$ 为端到端 P95 延迟换算出的控制步数，$m$ 可先取 3–5 步。当前 LeRobot 还会根据实际推理耗时自适应提前请求，因此该公式用于确定起点，不是硬性限制。
+
+- $Q$ 过小：可能来不及生成新动作，导致队列耗尽；
+- $Q$ 过大：会在队列仍较长时过早重新推理，增加不必要的推理和动作块切换频率。
+
+30 Hz 修复后，端到端 P95 为 159.02 ms，对应：
+
+```text
+d_P95 = ceil(0.15902 s × 30 Hz) = 5 steps
+d_P95 + m = 8–10 steps
+```
+
+本轮将 LeRobot 默认值 **30** 下调为 **20**。20 仍是相对保守的真机配置；在 `execution_horizon=10`、延迟 5 步时，相对 `5 + 10 = 15` 仍保留 5 步队列余量，但触发时间晚于 30，可减少过早重新推理和频繁切换。
+
+#### 第三步：调整 `execution_horizon`
+
+- 过小：新旧 action chunk 的重叠约束不足，块边界可能不连续；
+- 过大：旧轨迹影响范围过长，降低策略对新观测的响应能力；
+- 可从 8–12 步作为初始实验范围。
+
+本轮保持 **10 步**不变，以避免在验证队列和 guidance weight 时同时改变多个主变量。30 Hz 下 10 步约为 333 ms。
+
+#### 第四步：调整 `max_guidance_weight`
+
+- 过小：新旧动作块之间的一致性约束不足；
+- 过大：可能过度遵循旧轨迹，对新观测响应迟缓，甚至表现为拉回、回弹或不稳定；
+- Guided RTC 可从 **10.0** 开始实验。
+
+本轮从初始值 **10.0** 下调为 **5.0**。这一调整发生在延迟和队列 bug 修复、`queue_threshold` 调为 20 之后，目的是单独减弱旧轨迹约束；`execution_horizon=10` 和 EXP schedule 保持不变。
+
+### 2.3 最终配置的时间尺度
 
 30 Hz 下一个控制步为 33.33 ms。实测稳态端到端推理约 147–159 ms，因此通常对应 5 个控制步：
 
@@ -67,7 +132,7 @@ ceil(0.16 s × 30 Hz) = 5 steps
 | `merge_delay_steps` | 合并动作块时实际跳过的动作数 |
 | `actual_consumed_steps` | 推理期间 actor 真正执行的动作数 |
 
-P50 是中位数；P95 表示 95% 的样本不超过该延迟。RTC 参数主要参考 P95，而不是只参考平均值或偶发最大值。
+P50 是中位数；P95/P99 分别表示约 95%/99% 的样本不超过该延迟。RTC 参数以 P95 作为主要工作点，P99 用于监测更极端的尾延迟，而不是只参考平均值或模型 forward 时间。本文 P99 使用 nearest-rank 计算；当前样本量较小，因此它会接近或等于最大值，只作为尾部风险检查，不能替代更长时间的统计。
 
 ## 4. 调试过程
 
@@ -75,10 +140,10 @@ P50 是中位数；P95 表示 95% 的样本不超过该延迟。RTC 参数主要
 
 排除首次冷启动后，共记录 34 个 RTC guided chunks。
 
-| 指标 | Mean | P50 | P95 | Max |
-|---|---:|---:|---:|---:|
-| Model latency | 140.33 ms | 139.50 ms | 146.35 ms | 167.38 ms |
-| End-to-end latency | 144.45 ms | 143.57 ms | 150.81 ms | 171.64 ms |
+| 指标 | Mean | P50 | P95 | P99 | Max |
+|---|---:|---:|---:|---:|---:|
+| Model latency | 140.33 ms | 139.50 ms | 146.35 ms | 167.38 ms | 167.38 ms |
+| End-to-end latency | 144.45 ms | 143.57 ms | 150.81 ms | 171.64 ms | 171.64 ms |
 
 50 Hz 的控制周期为 20 ms，稳态延迟通常换算为 8 步，偶发达到 9 步。首次冷启动为 406.32 ms，即 21 步。
 
@@ -88,10 +153,10 @@ P50 是中位数；P95 表示 95% 的样本不超过该延迟。RTC 参数主要
 
 排除首次冷启动后，共记录 19 个 RTC guided chunks。
 
-| 指标 | Mean | P50 | P95 | Max |
-|---|---:|---:|---:|---:|
-| Model latency | 142.98 ms | 141.65 ms | 152.32 ms | 156.19 ms |
-| End-to-end latency | 147.13 ms | 145.79 ms | 156.84 ms | 160.40 ms |
+| 指标 | Mean | P50 | P95 | P99 | Max |
+|---|---:|---:|---:|---:|---:|
+| Model latency | 142.98 ms | 141.65 ms | 152.32 ms | 156.19 ms | 156.19 ms |
+| End-to-end latency | 147.13 ms | 145.79 ms | 156.84 ms | 160.40 ms | 160.40 ms |
 
 降低控制频率没有明显改变模型的毫秒延迟，但将推理跨越的控制步数从约 8 步降到 5 步。19 次稳态推理的估算值均为 5 步，但实际消费为 4 或 5 步，其中 9 次相差 1 步。
 
@@ -152,10 +217,10 @@ lerobot/tests/policies/rtc/test_latency_tracker.py
 
 修复后完成一次 60 秒真机 rollout，共记录 58 个 action chunks，其中 57 个为 RTC guided chunks。
 
-| 指标 | Mean | P50 | P95 | Max |
-|---|---:|---:|---:|---:|
-| Model latency | 142.91 ms | 142.23 ms | 155.30 ms | 156.38 ms |
-| End-to-end latency | 146.94 ms | 146.24 ms | 159.02 ms | 160.55 ms |
+| 指标 | Mean | P50 | P95 | P99 | Max |
+|---|---:|---:|---:|---:|---:|
+| Model latency | 142.91 ms | 142.23 ms | 155.30 ms | 156.38 ms | 156.38 ms |
+| End-to-end latency | 146.94 ms | 146.24 ms | 159.02 ms | 160.55 ms | 160.55 ms |
 
 队列与 RTC 状态：
 
@@ -279,7 +344,7 @@ chunk=2 rtc_guided=True  ... used_delay_steps=5 measured_delay_steps=5 merge_del
 | 出现 queue underrun | 提高 queue threshold | 20 → 22/24 |
 | 推理 P95 明显超过 166 ms | 重新测量 bootstrap / P95 | 5 → 6 steps |
 
-每轮只调整一个主变量，并至少记录：checkpoint、任务文本、控制频率、RTC 参数、延迟 P50/P95、成功次数和失败阶段。
+每轮只调整一个主变量，并至少记录：checkpoint、任务文本、控制频率、RTC 参数、端到端延迟 P50/P95/P99、成功次数和失败阶段。
 
 ## 11. 当前结论与边界
 

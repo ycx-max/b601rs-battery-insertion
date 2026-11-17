@@ -260,6 +260,8 @@ Real-Time Chunking（RTC）用于处理机器人执行当前动作段时，后�
 
 **实验口径：** Full FT + RTC 复用 80,000-step Full FT checkpoint。84% 是 RTC 推理配置下的真机评测结果，不代表 RTC 单独训练了一个新模型。
 
+RTC 工程调试从 LeRobot 默认/初始配置 `queue_threshold=30`、`execution_horizon=10`、`max_guidance_weight=10` 开始。测量端到端 P95/P99 延迟时发现冷启动污染延迟统计和动作队列错位问题；修复后先将 `queue_threshold` 从 30 调为 20，再将 `max_guidance_weight` 从 10 调为 5，`execution_horizon=10` 与 EXP schedule 保持不变。完整参数依据、50/30 Hz 延迟数据和修复过程见 [RTC_EXPERIMENT.md](./RTC_EXPERIMENT.md)。
+
 ## 6. Results
 
 四种 π0.5 训练实验均完成 80,000 steps。当前成功率对比包含完成 25 次真机评测的三种训练策略，以及 Full FT checkpoint 的 RTC 推理配置。
