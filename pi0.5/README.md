@@ -182,8 +182,8 @@ policy.train_expert_only = false
 | Parameter | Value |
 |---|---:|
 | num_processes | 2 |
-| Per-device Batch Size | 4 |
-| Global Batch Size | 8 |
+| Per-device Batch Size | 32 |
+| Global Batch Size | 64 |
 | num_workers | 0 |
 | gradient_checkpointing | true |
 | compile_model | false |
@@ -217,7 +217,7 @@ accelerate launch \
   --policy.push_to_hub=false \
   --output_dir=outputs/train/pi05_full_finetune_test1102 \
   --job_name=pi05_full_finetune_test1102 \
-  --batch_size=4 \
+  --batch_size=32 \
   --num_workers=0 \
   --steps=80000 \
   --eval_freq=0 \
@@ -231,11 +231,11 @@ LoRA 与 Expert-Only 的训练方式不同于上述 Full FT 命令，应分别�
 
 ### 4.3 Equivalent Dataset Passes
 
-在全局 Batch Size 为 8 的记录配置下，数据集包含 32,666 Frames：
+在全局 Batch Size 为 64 的记录配置下，数据集包含 32,666 Frames：
 
-80,000 × 8 / 32,666 ≈ 19.59
+80,000 × 64 / 32,666 ≈ 156.74
 
-即按该 Batch Size 估算，80,000 steps 对应约 19.59 次数据集等效遍历。该数值是按帧数和全局 Batch Size 计算的估算值，不代表独立的 Epoch 配置。
+即按该 Batch Size 估算，80,000 steps 对应约 156.74 次数据集等效遍历。该数值是按帧数和全局 Batch Size 计算的估算值，不代表独立的 Epoch 配置。
 
 ## 5. Real-Robot Deployment and RTC
 
