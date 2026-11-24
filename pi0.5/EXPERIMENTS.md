@@ -94,8 +94,8 @@ Recorded Full FT DDP configuration:
 | GPU | 2 × RTX 4090 |
 | num_processes | 2 |
 | Mixed Precision | BF16 |
-| Per-device Batch Size | 32 |
-| Global Batch Size | 64 |
+| Per-device Batch Size | 4 |
+| Global Batch Size | 8 |
 | gradient_checkpointing | true |
 | compile_model | false |
 | video_backend | pyav |
