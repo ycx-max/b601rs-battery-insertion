@@ -166,16 +166,4 @@ ACT 使用 CVAE 对示教动作中的多模态分布进行建模。KL Loss 接�
 
 ACT 一次预测多个未来动作。Temporal Ensembling 对不同时间预测得到的重叠动作进行加权融合，用于平滑动作执行。Action Chunk 长度和 Temporal Ensembling 是两个独立的配置维度。
 
-## 7. Reproducibility Checklist
 
-- [x] 记录单臂硬件组成
-- [x] 记录 50 条示教与左右初始位置分布
-- [x] 记录数据集 Repo ID 和 Frame 数量
-- [x] 记录 ACT 主要模型参数
-- [x] 记录训练步数、Batch Size 和 Optimizer
-- [x] 保存 W&B 训练记录
-- [x] 完成多次真机 Rollout
-- [ ] 整理每次真机测试的成功 / 失败记录
-- [x] 已在仓库根目录归档真机演示视频与预览图
-- [ ] 补充 LeRobot 代码版本与训练配置文件
-- [ ] 对左右初始位置分别统计成功率
