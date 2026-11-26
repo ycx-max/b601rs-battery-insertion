@@ -57,7 +57,7 @@
 | **合计** | **50** | **100%** |
 
 π0.5 数据集的任务文本为 **Insert the battery into slot**，task_index 为 0。
-
+'''
 test_1102/
 ├── data/
 │   └── chunk-000/
@@ -78,7 +78,7 @@ test_1102/
     └── episodes/
         └── chunk-000/
             └── file-000.parquet
-
+'''
 ## 3. Real-Robot Results
 
 ### 3.1 ACT：Imitation Learning Baseline
