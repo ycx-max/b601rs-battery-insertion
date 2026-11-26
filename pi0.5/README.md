@@ -248,7 +248,7 @@ LoRA 与 Expert-Only 的训练方式不同于上述 Full FT 命令，应分别�
 5. 将动作序列发送至 B601-RS 执行。
 6. 观察抓取、对准和插入结果，记录成功或失败。
 
-### 5.2 RTC
+### 5.2 RTC调参过程
 
 Real-Time Chunking（RTC）用于处理机器人执行当前动作段时，后续动作段的在线生成与衔接问题。项目在 Full Fine-Tuning checkpoint 上启用 RTC，重点涉及：
 
@@ -258,7 +258,7 @@ Real-Time Chunking（RTC）用于处理机器人执行当前动作段时，后�
 - 动作重叠区域的衔接；
 - 在线执行过程中的动作连续性。
 
-**实验口径：** Full FT + RTC 复用 80,000-step Full FT checkpoint。84% 是 RTC 推理配置下的真机评测结果，不代表 RTC 单独训练了一个新模型。
+
 
 RTC 工程调试从 LeRobot 默认/初始配置 `queue_threshold=30`、`execution_horizon=10`、`max_guidance_weight=10` 开始。测量端到端 P95/P99 延迟时发现冷启动污染延迟统计和动作队列错位问题；修复后先将 `queue_threshold` 从 30 调为 20，再将 `max_guidance_weight` 从 10 调为 5，`execution_horizon=10` 与 EXP schedule 保持不变。完整参数依据、50/30 Hz 延迟数据和修复过程见 [RTC_EXPERIMENT.md](./RTC_EXPERIMENT.md)。
 
