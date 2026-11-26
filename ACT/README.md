@@ -77,7 +77,7 @@ Temporal Ensembling 当前关闭。ACT 根据观测预测一段未来动作，�
 
 ### 4.1 Training Run
 
-训练曲线：[W&B Run — act_rebot_test](https://forge.coreweave.com/wandb/3213152090-bit/lerobot/runs/yidm7mzl?nw=nwuser3213152090)
+
 
 | 项目 | 配置 |
 |---|---|
