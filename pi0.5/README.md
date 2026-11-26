@@ -117,21 +117,21 @@ Action:
 
 LoRA（Low-Rank Adaptation）的核心假设是：预训练模型适配下游任务时，有效权重更新可以近似表示为低秩矩阵，而不必直接优化整个权重矩阵。
 
-对于线性层 $W_0\in\mathbb{R}^{d_{\mathrm{out}}\times d_{\mathrm{in}}}$，冻结原始权重，并引入两个可训练矩阵：
+对于线性层 $`W_0\in\mathbb{R}^{d_{\mathrm{out}}\times d_{\mathrm{in}}}`$，冻结原始权重，并引入两个可训练矩阵：
 
-$
+```math
 A\in\mathbb{R}^{r\times d_{\mathrm{in}}},\qquad
 B\in\mathbb{R}^{d_{\mathrm{out}}\times r}
-$
+```
 
-$
+```math
 W_{\mathrm{eff}}=W_0+\frac{\alpha}{r}BA,\qquad
 y=W_0x+\frac{\alpha}{r}BAx
-$
+```
 
-其中 $r$ 为 Rank，$\alpha$ 为缩放系数。通常随机初始化 $A$、将 $B$ 初始化为零，使训练开始时模型与原始预训练模型等价。反向传播更新适配器参数，而非该线性层的原始权重。
+其中 $`r`$ 为 Rank，$`\alpha`$ 为缩放系数。通常随机初始化 $`A`$、将 $`B`$ 初始化为零，使训练开始时模型与原始预训练模型等价。反向传播更新适配器参数，而非该线性层的原始权重。
 
-原始线性层包含 $d_{\mathrm{out}}d_{\mathrm{in}}$ 个权重，LoRA 仅新增 $r(d_{\mathrm{in}}+d_{\mathrm{out}})$ 个可训练参数。以 2048 × 2048 的线性层和 Rank = 32 为例，新增参数为 131,072，约为原权重参数量的 3.125%。因此 LoRA 可以减少梯度和优化器状态的显存开销；但冻结的主干仍需参与前向计算，不能将参数减少比例直接等同于显存或计算量减少比例。标准 LoRA 在部署时还可将低秩增量合并到原权重中。
+原始线性层包含 $`d_{\mathrm{out}}d_{\mathrm{in}}`$ 个权重，LoRA 仅新增 $`r(d_{\mathrm{in}}+d_{\mathrm{out}})`$ 个可训练参数。以 2048 × 2048 的线性层和 Rank = 32 为例，新增参数为 131,072，约为原权重参数量的 3.125%。因此 LoRA 可以减少梯度和优化器状态的显存开销；但冻结的主干仍需参与前向计算，不能将参数减少比例直接等同于显存或计算量减少比例。标准 LoRA 在部署时还可将低秩增量合并到原权重中。
 
 本项目采用 Rank = 32 的 LoRA 配置完成 80,000-step 训练，目标是在小样本条件下以受限的参数更新范围适配新的机器人本体及精细操作任务。
 
@@ -277,13 +277,13 @@ RTC（Real-Time Chunking）将异步推理与动作前缀条件约束结合：�
 
 #### 时间对齐与动作承诺
 
-设 $H$ 为预测视界，$s$ 为两次推理启动之间已经执行的动作步数（原论文中的 execution horizon），$d$ 为推理延迟折算的控制步数。若端到端推理延迟为 $L$ 秒、控制频率为 $f$ Hz，可保守估计：
+设 $`H`$ 为预测视界，$`s`$ 为两次推理启动之间已经执行的动作步数（原论文中的 execution horizon），$`d`$ 为推理延迟折算的控制步数。若端到端推理延迟为 $`L`$ 秒、控制频率为 $`f`$ Hz，可保守估计：
 
-$$
+```math
 d=\lceil Lf\rceil
-$$
+```
 
-新推理开始时，旧动作块还有 $H-s$ 个与新动作块重叠的动作。为了让推理期间的动作连续可执行，需要满足 $d\le H-s$。
+新推理开始时，旧动作块还有 $`H-s`$ 个与新动作块重叠的动作。为了让推理期间的动作连续可执行，需要满足 $`d\le H-s`$。
 
 ~~~text
 新块推理开始时（以 H=50、s=30、d=5 为示意）：
@@ -297,25 +297,25 @@ $$
 
 #### Flow Matching 中的引导机制
 
-用 $o$ 表示当前观测，$P$ 表示按新块时间轴对齐、补齐后的旧动作块剩余部分。采用噪声端 $\tau=0$、数据端 $\tau=1$ 的时间约定，当前去噪动作为 $X_\tau$，速度场为 $v_\theta$。可以用一步外推估计干净动作：
+用 $`o`$ 表示当前观测，$`P`$ 表示按新块时间轴对齐、补齐后的旧动作块剩余部分。采用噪声端 $`\tau=0`$、数据端 $`\tau=1`$ 的时间约定，当前去噪动作为 $`X_\tau`$，速度场为 $`v_\theta`$。可以用一步外推估计干净动作：
 
-$$
+```math
 \widehat X_1=X_\tau+(1-\tau)v_\theta(X_\tau,o,\tau)
-$$
+```
 
-定义时间步权重掩码 $m$：前 $d$ 步为 1（已承诺前缀），其他有效重叠步逐渐衰减，非重叠步为 0。原版 RTC 的 EXP soft mask 在远期逐渐放松旧轨迹约束，使策略仍能响应最新观测。
+定义时间步权重掩码 $`m`$：前 $`d`$ 步为 1（已承诺前缀），其他有效重叠步逐渐衰减，非重叠步为 0。原版 RTC 的 EXP soft mask 在远期逐渐放松旧轨迹约束，使策略仍能响应最新观测。
 
-$$
+```math
 g_\tau=J_{\widehat X_1}(X_\tau)^\top
 \big[m\odot(P-\widehat X_1)\big]
-$$
+```
 
-$$
+```math
 \frac{\mathrm d X_\tau}{\mathrm d\tau}
 =v_\theta(X_\tau,o,\tau)+\lambda_\tau g_\tau
-$$
+```
 
-其中 $J$ 是干净动作估计相对于当前带噪动作的 Jacobian，$\lambda_\tau$ 为随 Flow Matching 时间变化且受最大引导权重限制的系数。以上为原论文引导机制的简化表达，具体实现可能采用相反的 Flow Matching 时间方向。
+其中 $`J`$ 是干净动作估计相对于当前带噪动作的 Jacobian，$`\lambda_\tau`$ 为随 Flow Matching 时间变化且受最大引导权重限制的系数。以上为原论文引导机制的简化表达，具体实现可能采用相反的 Flow Matching 时间方向。
 
 RTC 通过向量-Jacobian 乘积（VJP）在每次去噪时修正速度场，不更新模型参数；这不是对新旧动作做简单平均。旧队列中已经承诺的动作由执行端继续执行，而引导后的新块用于未来的动作续接。
 
@@ -331,7 +331,7 @@ RTC 通过向量-Jacobian 乘积（VJP）在每次去噪时修正速度场，不
 |---|---|
 | queue_threshold | 剩余动作队列达到触发条件时启动下一次推理；需要覆盖端到端推理延迟及适当裕量 |
 | inference_delay | 推理期间消耗的控制步数，基于运行时延迟估计 |
-| rtc.execution_horizon | LeRobot guided RTC 中用于保持新旧块一致性的步数，与原论文中两次推理启动间隔 $s$ 的定义不完全相同 |
+| rtc.execution_horizon | LeRobot guided RTC 中用于保持新旧块一致性的步数，与原论文中两次推理启动间隔 $`s`$ 的定义不完全相同 |
 | rtc.max_guidance_weight | 限制速度场引导修正的最大权重，平衡连续性与响应性 |
 | prefix_attention_schedule | 重叠区域的约束衰减方式，本项目使用 EXP |
 
@@ -341,33 +341,33 @@ RTC 工程调试从 LeRobot 默认/初始配置 `queue_threshold=30`、`executio
 
 原版 RTC 将动作前缀约束放在推理阶段，通过 VJP 引导生成；后续工作 Training-Time Action Conditioning 将该条件生成能力直接学进模型，从而减少部署时的计算开销。
 
-训练时 RTC 在每个训练样本中随机模拟推理延迟 $d$，将示教动作块分为干净前缀和带噪后缀。设真实动作块为 $A$、噪声为 $\epsilon\sim\mathcal{N}(0,I)$，在噪声到数据的时间约定下：
+训练时 RTC 在每个训练样本中随机模拟推理延迟 $`d`$，将示教动作块分为干净前缀和带噪后缀。设真实动作块为 $`A`$、噪声为 $`\epsilon\sim\mathcal{N}(0,I)`$，在噪声到数据的时间约定下：
 
-$
+```math
 X_i^\tau=
 \begin{cases}
 A_i, & i<d\\
 \tau A_i+(1-\tau)\epsilon_i, & i\ge d
 \end{cases}
-$
+```
 
-$
+```math
 \tau_i=
 \begin{cases}
 1, & i<d\\
 \tau, & i\ge d
 \end{cases}
-$
+```
 
 前缀使用无噪声的真实动作及对应的干净时间步，后缀保持标准 Flow Matching 加噪方式。仅对后缀计算速度场监督损失（以下为噪声到数据方向的示意）：
 
-$
+```math
 \mathcal L_{\mathrm{RTC}}=
 \mathbb E\left[
 \frac{1}{H-d}\sum_{i=d}^{H-1}
 \left\|v_{\theta,i}(X^\tau,o,\boldsymbol{\tau})-(A_i-\epsilon_i)\right\|^2
 \right]
-$
+```
 
 模型因此学习给定观测与已知动作前缀时的后续动作分布。部署时，使用上一个动作块的已承诺前缀替代训练时的真实前缀，在生成过程中固定该前缀并预测剩余动作，无需额外的 VJP 引导。注意：LeRobot π0.5 的实际时间约定为数据端 0、噪声端 1 时，上述时间标签和速度目标方向需相应反转。
 
