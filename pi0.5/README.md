@@ -344,19 +344,19 @@ RTC 工程调试从 LeRobot 默认/初始配置 `queue_threshold=30`、`executio
 训练时 RTC 在每个训练样本中随机模拟推理延迟 $`d`$，将示教动作块分为干净前缀和带噪后缀。设真实动作块为 $`A`$、噪声为 $`\epsilon\sim\mathcal{N}(0,I)`$，在噪声到数据的时间约定下：
 
 ```math
-X_i^\tau=
-\begin{cases}
-A_i, & i<d\\
-\tau A_i+(1-\tau)\epsilon_i, & i\ge d
-\end{cases}
+X_i^\tau=A_i,\qquad i=0,\ldots,d-1
 ```
 
 ```math
-\tau_i=
-\begin{cases}
-1, & i<d\\
-\tau, & i\ge d
-\end{cases}
+X_i^\tau=\tau A_i+(1-\tau)\epsilon_i,\qquad i=d,\ldots,H-1
+```
+
+```math
+\tau_i=1,\qquad i=0,\ldots,d-1
+```
+
+```math
+\tau_i=\tau,\qquad i=d,\ldots,H-1
 ```
 
 前缀使用无噪声的真实动作及对应的干净时间步，后缀保持标准 Flow Matching 加噪方式。仅对后缀计算速度场监督损失（以下为噪声到数据方向的示意）：
