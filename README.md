@@ -58,6 +58,27 @@
 
 π0.5 数据集的任务文本为 **Insert the battery into slot**，task_index 为 0。
 
+test_1102/
+├── data/
+│   └── chunk-000/
+│       └── file-000.parquet
+│
+├── videos/
+│   ├── observation.images.front/
+│   │   └── chunk-000/
+│   │       └── file-000.mp4
+│   └── observation.images.side/
+│       └── chunk-000/
+│           └── file-000.mp4
+│
+└── meta/
+    ├── info.json
+    ├── stats.json
+    ├── tasks.parquet
+    └── episodes/
+        └── chunk-000/
+            └── file-000.parquet
+
 ## 3. Real-Robot Results
 
 ### 3.1 ACT：Imitation Learning Baseline
